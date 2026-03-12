@@ -1,9 +1,0 @@
-[build]
-builder = "NIXPACKS"
-buildCommand = "npm install && npm run build && cd backend && npm install && npx tsc"
-
-[deploy]
-startCommand = "NODE_ENV=production node backend/dist/index.js"
-healthcheckPath = "/api/health"
-healthcheckTimeout = 60
-
