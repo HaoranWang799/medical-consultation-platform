@@ -48,6 +48,11 @@ if (IS_PRODUCTION) {
 
 // ── 启动 ────────────────────────────────────────────────────────────────────
 async function bootstrap(): Promise<void> {
+  if (!process.env.DATABASE_URL) {
+    console.error("❌ 缺少 DATABASE_URL 环境变量，请在 Railway 中添加 PostgreSQL 数据库并关联变量");
+    process.exit(1);
+  }
+
   await ensureDefaultUsers();
 
   app.listen(PORT, () => {
