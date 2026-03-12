@@ -93,7 +93,7 @@ function HeroPanel() {
 /* ───────── Auth card (right panel) ───────── */
 
 function AuthCard() {
-  const { login, register, sendPhoneCode, registerByPhone } = useAuth();
+  const { login, register } = useAuth();
   const navigate = useNavigate();
   const requestIdRef = useRef(0);
 
@@ -103,25 +103,16 @@ function AuthCard() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [accountExists, setAccountExists] = useState<boolean | null>(null);
   const [checkingAccount, setCheckingAccount] = useState(false);
-  const [verificationCode, setVerificationCode] = useState("");
-  const [sendingCode, setSendingCode] = useState(false);
-  const [countdown, setCountdown] = useState(0);
-  const [debugCode, setDebugCode] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  const normalizePhone = (value: string) => value.replace(/\D/g, "");
   const isEmail = (value: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim().toLowerCase());
-  const isPhone = (value: string) => /^1\d{10}$/.test(normalizePhone(value));
 
-  /* ── 500ms debounced account check ── */
+  /* ── 200ms debounced account check ── */
   useEffect(() => {
-    const normalized = account.trim();
-    const normalizedValue = isEmail(normalized)
-      ? normalized.toLowerCase()
-      : normalizePhone(normalized);
+    const normalized = account.trim().toLowerCase();
 
-    if (!normalizedValue || (!isEmail(normalized) && !isPhone(normalized))) {
+    if (!normalized || !isEmail(normalized)) {
       setAccountExists(null);
       setCheckingAccount(false);
       setPassword("");
@@ -136,10 +127,10 @@ function AuthCard() {
     const timer = window.setTimeout(async () => {
       try {
         const res = await api.get<{ exists: boolean }>(
-          `/auth/check-account?account=${encodeURIComponent(normalizedValue)}&role=${role}`
+          `/auth/check-account?account=${encodeURIComponent(normalized)}&role=${role}`
         );
         if (requestIdRef.current !== rid) return;
-        setAccount(normalizedValue);
+        setAccount(normalized);
         setAccountExists(res.exists);
       } catch (err) {
         if (requestIdRef.current !== rid) return;
@@ -148,17 +139,11 @@ function AuthCard() {
       } finally {
         if (requestIdRef.current === rid) setCheckingAccount(false);
       }
-    }, 500);
+    }, 200);
 
     return () => window.clearTimeout(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [account, role]);
-
-  useEffect(() => {
-    if (countdown <= 0) return;
-    const timer = window.setTimeout(() => setCountdown((value) => value - 1), 1000);
-    return () => window.clearTimeout(timer);
-  }, [countdown]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -183,7 +168,7 @@ function AuthCard() {
     }
     setLoading(true);
     try {
-      const displayName = isEmail(account) ? account.split("@")[0] || "用户" : `用户${account.slice(-4)}`;
+      const displayName = account.split("@")[0] || "用户";
       await register(displayName, account, password, role);
       navigate(role === "doctor" ? "/doctor" : "/home");
     } catch (err) {
@@ -193,68 +178,20 @@ function AuthCard() {
     }
   };
 
-  const handlePhoneRegister = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError("");
-    if (password !== confirmPassword) {
-      setError("两次输入的密码不一致");
-      return;
-    }
-    if (!verificationCode.trim()) {
-      setError("请输入验证码");
-      return;
-    }
-
-    setLoading(true);
-    try {
-      await registerByPhone(`用户${account.slice(-4)}`, account, verificationCode, password, role);
-      navigate(role === "doctor" ? "/doctor" : "/home");
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "注册失败，请重试");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleSendCode = async () => {
-    if (!isPhone(account)) {
-      setError("请输入有效的手机号");
-      return;
-    }
-
-    setError("");
-    setSendingCode(true);
-    try {
-      const res = await sendPhoneCode(account, role);
-      setCountdown(60);
-      setDebugCode(res.debugCode ?? "");
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "验证码发送失败，请重试");
-    } finally {
-      setSendingCode(false);
-    }
-  };
-
   const resetEmail = () => {
     setAccount("");
     setAccountExists(null);
     setPassword("");
     setConfirmPassword("");
-    setVerificationCode("");
-    setSendingCode(false);
-    setCountdown(0);
-    setDebugCode("");
     setError("");
   };
 
   const modeLabel =
     accountExists === null
-      ? "输入邮箱或手机号，系统自动识别登录或注册"
+      ? "输入邮箱，系统自动识别登录或注册"
       : accountExists
         ? "已检测到账号，请输入密码"
-        : isPhone(account)
-          ? "新手机号，请先获取验证码再完成注册"
-          : "新邮箱，请设置密码完成注册";
+        : "新邮箱，请设置密码完成注册";
 
   return (
     <div
@@ -310,7 +247,7 @@ function AuthCard() {
             {/* email */}
             <div className="space-y-1.5">
               <div className="flex items-center justify-between">
-                <label htmlFor="account" className="text-sm font-medium text-gray-700">邮箱或手机号</label>
+                <label htmlFor="account" className="text-sm font-medium text-gray-700">邮箱</label>
                 {accountExists !== null && (
                   <button type="button" onClick={resetEmail} className="text-xs text-teal-600 hover:underline">
                     更换账号
@@ -330,7 +267,7 @@ function AuthCard() {
                     setPassword("");
                     setConfirmPassword("");
                   }}
-                  placeholder="name@example.com 或 13800138000"
+                  placeholder="name@example.com"
                   className={`h-11 w-full rounded-lg border border-gray-300 px-3 pr-10 text-sm transition-all focus:border-teal-500 focus:outline-none focus:ring-2 focus:ring-teal-500/30 ${
                     accountExists !== null ? "bg-gray-50 text-gray-500" : ""
                   }`}
@@ -371,7 +308,7 @@ function AuthCard() {
                 </form>
               )}
 
-              {accountExists === false && !isPhone(account) && (
+              {accountExists === false && (
                 <form onSubmit={handleRegister} className="space-y-4">
                   <div className="space-y-1.5">
                     <label htmlFor="pwd" className="text-sm font-medium text-gray-700">设置密码</label>
@@ -402,69 +339,6 @@ function AuthCard() {
                     className="h-11 w-full rounded-lg bg-teal-600 font-medium text-white shadow-lg shadow-teal-600/25 transition-all hover:bg-teal-700 disabled:cursor-not-allowed disabled:opacity-60"
                   >
                     {loading ? "注册中…" : "注册"}
-                  </button>
-                </form>
-              )}
-
-              {accountExists === false && isPhone(account) && (
-                <form onSubmit={handlePhoneRegister} className="space-y-4">
-                  <div className="space-y-1.5">
-                    <label htmlFor="sms-code" className="text-sm font-medium text-gray-700">短信验证码</label>
-                    <div className="flex gap-2">
-                      <input
-                        id="sms-code"
-                        type="text"
-                        inputMode="numeric"
-                        value={verificationCode}
-                        onChange={(e) => setVerificationCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
-                        placeholder="6位验证码"
-                        className="h-11 flex-1 rounded-lg border border-gray-300 px-3 text-sm focus:border-teal-500 focus:outline-none focus:ring-2 focus:ring-teal-500/30"
-                        required
-                      />
-                      <button
-                        type="button"
-                        disabled={sendingCode || countdown > 0}
-                        onClick={handleSendCode}
-                        className="h-11 min-w-[112px] rounded-lg border border-teal-200 bg-teal-50 px-3 text-sm font-medium text-teal-700 transition hover:bg-teal-100 disabled:cursor-not-allowed disabled:opacity-60"
-                      >
-                        {sendingCode ? "发送中…" : countdown > 0 ? `${countdown}s` : "获取验证码"}
-                      </button>
-                    </div>
-                    {debugCode && (
-                      <p className="text-xs text-amber-600">
-                        调试验证码：{debugCode}
-                      </p>
-                    )}
-                  </div>
-                  <div className="space-y-1.5">
-                    <label htmlFor="pwd-phone" className="text-sm font-medium text-gray-700">设置密码</label>
-                    <input
-                      id="pwd-phone"
-                      type="password"
-                      placeholder="至少 6 位字符"
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      className="h-11 w-full rounded-lg border border-gray-300 px-3 text-sm focus:border-teal-500 focus:outline-none focus:ring-2 focus:ring-teal-500/30"
-                      required
-                    />
-                  </div>
-                  <div className="space-y-1.5">
-                    <label htmlFor="cpwd-phone" className="text-sm font-medium text-gray-700">确认密码</label>
-                    <input
-                      id="cpwd-phone"
-                      type="password"
-                      value={confirmPassword}
-                      onChange={(e) => setConfirmPassword(e.target.value)}
-                      className="h-11 w-full rounded-lg border border-gray-300 px-3 text-sm focus:border-teal-500 focus:outline-none focus:ring-2 focus:ring-teal-500/30"
-                      required
-                    />
-                  </div>
-                  <button
-                    type="submit"
-                    disabled={loading}
-                    className="h-11 w-full rounded-lg bg-teal-600 font-medium text-white shadow-lg shadow-teal-600/25 transition-all hover:bg-teal-700 disabled:cursor-not-allowed disabled:opacity-60"
-                  >
-                    {loading ? "注册中…" : "验证码注册"}
                   </button>
                 </form>
               )}
