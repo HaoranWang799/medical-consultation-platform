@@ -192,7 +192,7 @@ function AuthCard() {
   return (
     <div
       id="auth-card"
-      className="flex items-center justify-center bg-gradient-to-b from-teal-50/50 to-white px-6 py-12 lg:px-12"
+      className="flex items-center justify-center bg-gradient-to-b from-teal-900/5 via-teal-100/10 to-white px-6 py-12 lg:px-12"
     >
       <div className="w-full max-w-md animate-[fadeSlideIn_0.7s_ease-out_0.2s_both]">
         {/* Mobile-only brand line */}
@@ -200,7 +200,7 @@ function AuthCard() {
           <Activity className="h-6 w-6" /> 医问诊
         </div>
 
-        <div className="rounded-xl bg-white p-6 shadow-xl ring-1 ring-black/[0.04]">
+        <div className="rounded-2xl bg-white/80 backdrop-blur-sm p-8 shadow-xl shadow-teal-900/10">
           <h2 className="text-center text-xl font-semibold text-gray-900">智能登录</h2>
           <p className="mt-1 text-center text-sm text-gray-500 transition-all duration-300">
             {modeLabel}
