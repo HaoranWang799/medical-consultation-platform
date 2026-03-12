@@ -8,15 +8,15 @@ router.use(authenticate);
 
 // ── AI 提供商配置 ──────────────────────────────────────────────────────────
 // 主提供商（AI_API_KEY / AI_API_BASE / AI_MODEL）
-// 备用提供商（AI_FALLBACK_KEY / AI_FALLBACK_BASE / AI_FALLBACK_MODEL）
+// 高级分析提供商（AI_PREMIUM_KEY / AI_PREMIUM_BASE / AI_PREMIUM_MODEL）
 // 若主提供商失败，自动尝试备用
 const AI_API_KEY    = process.env.AI_API_KEY    ?? "";
 const AI_API_BASE   = process.env.AI_API_BASE   ?? "https://api.deepseek.com/v1";
 const AI_MODEL      = process.env.AI_MODEL      ?? "deepseek-chat";
 
-const AI_FALLBACK_KEY   = process.env.AI_FALLBACK_KEY   ?? "";
-const AI_FALLBACK_BASE  = process.env.AI_FALLBACK_BASE  ?? "";
-const AI_FALLBACK_MODEL = process.env.AI_FALLBACK_MODEL ?? "";
+const AI_PREMIUM_KEY   = process.env.AI_PREMIUM_KEY   ?? "";
+const AI_PREMIUM_BASE  = process.env.AI_PREMIUM_BASE  ?? "";
+const AI_PREMIUM_MODEL = process.env.AI_PREMIUM_MODEL ?? "";
 
 const SYSTEM_PROMPT = `你是一位专业、耐心的AI医疗助手。
 职责：
@@ -110,7 +110,7 @@ router.post("/chat-premium", async (req: AuthRequest, res: Response): Promise<vo
     symptoms?: string;
   };
 
-  if (!AI_FALLBACK_KEY || !AI_FALLBACK_BASE || !AI_FALLBACK_MODEL) {
+  if (!AI_PREMIUM_KEY || !AI_PREMIUM_BASE || !AI_PREMIUM_MODEL) {
     res.status(503).json({ message: "高级 AI 分析服务未配置" });
     return;
   }
@@ -132,7 +132,7 @@ router.post("/chat-premium", async (req: AuthRequest, res: Response): Promise<vo
   }
 
   try {
-    const content = await callProvider(AI_FALLBACK_BASE, AI_FALLBACK_KEY, AI_FALLBACK_MODEL, chatMessages);
+    const content = await callProvider(AI_PREMIUM_BASE, AI_PREMIUM_KEY, AI_PREMIUM_MODEL, chatMessages);
     res.json({ content });
   } catch (err) {
     const error = err as ProviderApiError;
@@ -216,9 +216,9 @@ async function callAI(messages: Array<{ role: string; content: string }>): Promi
   } catch (primaryErr) {
     console.error(`❌ 主 AI (${AI_MODEL}) 失败:`, primaryErr instanceof Error ? primaryErr.message : primaryErr);
 
-    if (AI_FALLBACK_KEY && AI_FALLBACK_BASE && AI_FALLBACK_MODEL) {
-      console.log(`🔄 切换备用 AI: ${AI_FALLBACK_MODEL}`);
-      return await callProvider(AI_FALLBACK_BASE, AI_FALLBACK_KEY, AI_FALLBACK_MODEL, messages);
+    if (AI_PREMIUM_KEY && AI_PREMIUM_BASE && AI_PREMIUM_MODEL) {
+      console.log(`🔄 切换高级 AI: ${AI_PREMIUM_MODEL}`);
+      return await callProvider(AI_PREMIUM_BASE, AI_PREMIUM_KEY, AI_PREMIUM_MODEL, messages);
     }
     throw primaryErr;
   }
