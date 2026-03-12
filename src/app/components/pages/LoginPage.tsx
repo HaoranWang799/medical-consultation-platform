@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router";
 import { useAuth, UserRole } from "../../context/AuthContext";
 import { api } from "../../../lib/api";
-import { Activity, Heart, Loader2, Plus, Stethoscope } from "lucide-react";
+import { Activity, Heart, Loader2, Plus, Stethoscope, MessageSquare, Brain, UserCheck, Shield, Zap, HeartPulse } from "lucide-react";
 
 /* ───────── Floating medical icons (decorative) ───────── */
 
@@ -352,13 +352,140 @@ function AuthCard() {
   );
 }
 
+/* ───────── Landing Page Sections ───────── */
+
+function HowItWorks() {
+  const steps = [
+    { icon: MessageSquare, title: "描述症状", desc: "用户输入自己的健康问题" },
+    { icon: Brain, title: "AI 初步分析", desc: "AI提出追问并分析症状" },
+    { icon: Stethoscope, title: "医生专业解答", desc: "必要时连接真人医生" },
+  ];
+  return (
+    <section className="bg-white py-24 px-6 lg:px-12">
+      <div className="mx-auto max-w-5xl">
+        <div className="text-center mb-16">
+          <h2 className="text-3xl font-bold tracking-tight text-gray-900">运作方式</h2>
+          <p className="mt-4 text-lg text-gray-500">简单的三步，即可获得专业的健康建议</p>
+        </div>
+        <div className="grid gap-10 md:grid-cols-3 relative">
+          <div className="hidden md:block absolute top-[45px] left-[15%] right-[15%] h-0.5 bg-gray-100 z-0"></div>
+          {steps.map((step, i) => (
+            <div key={i} className="relative z-10 flex flex-col items-center text-center group cursor-default">
+              <div className="flex h-24 w-24 items-center justify-center rounded-2xl bg-white shadow-xl shadow-teal-900/5 ring-1 ring-gray-900/5 transition-transform duration-300 group-hover:-translate-y-2">
+                <step.icon className="h-10 w-10 text-teal-600" />
+              </div>
+              <h3 className="mt-6 text-xl font-semibold text-gray-900">{step.title}</h3>
+              <p className="mt-2 text-gray-500">{step.desc}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function Features() {
+  const features = [
+    { icon: Zap, title: "AI智能问诊", desc: "通过AI快速分析健康问题" },
+    { icon: UserCheck, title: "医生在线咨询", desc: "真人医生在线解答" },
+    { icon: HeartPulse, title: "智能健康建议", desc: "AI提供健康建议" },
+    { icon: Shield, title: "隐私安全保护", desc: "医疗数据安全保护" },
+  ];
+  return (
+    <section className="bg-slate-50 py-24 px-6 lg:px-12">
+      <div className="mx-auto max-w-6xl">
+        <div className="text-center mb-16">
+          <h2 className="text-3xl font-bold tracking-tight text-gray-900">核心功能</h2>
+          <p className="mt-4 text-lg text-gray-500">全方位保护您的健康，随时随地触手可及</p>
+        </div>
+        <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-4">
+          {features.map((feature, i) => (
+            <div key={i} className="rounded-2xl bg-white p-8 shadow-sm ring-1 ring-black/[0.04] transition-all duration-300 hover:-translate-y-1 hover:shadow-xl hover:shadow-teal-900/5">
+              <div className="inline-flex h-12 w-12 items-center justify-center rounded-lg bg-teal-50 text-teal-600 mb-6">
+                <feature.icon className="h-6 w-6" />
+              </div>
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">{feature.title}</h3>
+              <p className="text-sm text-gray-500 leading-relaxed">{feature.desc}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function TrustSection() {
+  const items = [
+    "AI辅助诊断",
+    "专业医生支持",
+    "数据隐私保护"
+  ];
+  return (
+    <section className="bg-gradient-to-r from-teal-900 to-emerald-800 py-16 px-6 relative overflow-hidden">
+      {/* Decorative background circle */}
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-white opacity-[0.03] rounded-full blur-3xl pointer-events-none"></div>
+      
+      <div className="mx-auto max-w-4xl text-center relative z-10">
+        <h2 className="text-2xl md:text-3xl font-bold tracking-tight text-white mb-8">值得信赖的AI医疗助手</h2>
+        <div className="flex flex-col md:flex-row items-center justify-center gap-6 md:gap-12">
+          {items.map((item, i) => (
+            <div key={i} className="flex items-center gap-2 text-emerald-100 font-medium">
+              <div className="flex items-center justify-center h-8 w-8 rounded-full bg-emerald-500/20 text-emerald-300">
+                <Shield className="h-4 w-4" />
+              </div>
+              {item}
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function CTASection() {
+  return (
+    <section className="bg-white py-24 px-6 text-center">
+      <div className="mx-auto max-w-3xl">
+        <h2 className="text-3xl md:text-4xl font-extrabold tracking-tight text-gray-900">立即开始您的健康咨询</h2>
+        <p className="mt-4 text-lg text-gray-500 mb-10 max-w-xl mx-auto">不论是日常健康小问题，还是需要专业医疗建议，医问诊时刻在您身边。</p>
+        <a href="#auth-card" className="inline-flex h-14 items-center justify-center rounded-xl bg-teal-600 px-8 text-lg font-semibold text-white shadow-xl shadow-teal-600/25 transition-all hover:-translate-y-0.5 hover:bg-teal-700 hover:shadow-2xl hover:shadow-teal-600/30">
+          开始 AI 问诊
+        </a>
+      </div>
+    </section>
+  );
+}
+
+function Footer() {
+  return (
+    <footer className="bg-slate-50 border-t border-gray-200 py-12 px-6">
+      <div className="mx-auto max-w-6xl flex flex-col md:flex-row items-center justify-between gap-6">
+        <div className="flex items-center gap-2 text-lg font-bold text-gray-900">
+          <Activity className="h-6 w-6 text-teal-600" />
+          医问诊
+        </div>
+        <div className="flex flex-wrap items-center justify-center gap-6 text-sm text-gray-500">
+          <a href="#" className="hover:text-teal-600 transition-colors">关于我们</a>
+          <a href="#" className="hover:text-teal-600 transition-colors">隐私政策</a>
+          <a href="#" className="hover:text-teal-600 transition-colors">服务条款</a>
+          <a href="#" className="hover:text-teal-600 transition-colors">联系方式</a>
+        </div>
+        <div className="text-sm text-gray-400">
+          © 2026 Medical Consultation Platform
+        </div>
+      </div>
+    </footer>
+  );
+}
+
 /* ───────── Page shell ───────── */
 
 export function LoginPage() {
   return (
-    <>
+    <div className="min-h-screen bg-white font-sans text-slate-900 selection:bg-teal-100 selection:text-teal-900 scroll-smooth">
       {/* keyframes injected once */}
       <style>{`
+        html { scroll-behavior: smooth; }
         @keyframes float {
           0%, 100% { transform: translateY(0) rotate(0deg); }
           50%      { transform: translateY(-18px) rotate(6deg); }
@@ -369,10 +496,26 @@ export function LoginPage() {
         }
       `}</style>
 
-      <div className="grid min-h-screen lg:grid-cols-2">
+      {/* 1. Hero Section (Split Layout) */}
+      <section className="grid min-h-screen lg:grid-cols-2">
         <HeroPanel />
         <AuthCard />
-      </div>
-    </>
+      </section>
+
+      {/* 2. How It Works */}
+      <HowItWorks />
+
+      {/* 3. Features */}
+      <Features />
+
+      {/* 4. Trust Section */}
+      <TrustSection />
+
+      {/* 5. CTA Section */}
+      <CTASection />
+
+      {/* 6. Footer */}
+      <Footer />
+    </div>
   );
 }
