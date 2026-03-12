@@ -5,7 +5,7 @@ import { Button } from "../ui/button";
 import { Input } from "../ui/input";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "../ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../ui/tabs";
-import { Heart, Stethoscope } from "lucide-react";
+import { Heart, Stethoscope, Activity, ArrowRight } from "lucide-react";
 
 export function LoginPage() {
   const { login, register } = useAuth();
@@ -47,129 +47,168 @@ export function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-teal-50 via-white to-cyan-50 p-4">
-      <div className="w-full max-w-md">
-        <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-primary/10 mb-4">
-            <Heart className="w-8 h-8 text-primary" />
+    <div className="min-h-screen grid lg:grid-cols-2">
+      {/* Left Side - Hero / Branding (Hidden on mobile) */}
+      <div className="hidden lg:flex flex-col justify-between bg-zinc-900 text-white p-12 relative overflow-hidden">
+        <div className="absolute inset-0 bg-primary/20 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-primary/40 to-transparent" />
+        <div className="absolute inset-0 opacity-20" style={{ backgroundImage: "url(\"data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='1'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E\")" }} />
+        
+        <div className="relative z-10">
+          <div className="flex items-center gap-2 font-bold text-2xl tracking-tight mb-2">
+            <Activity className="w-8 h-8 text-primary" />
+            医问诊
           </div>
-          <h1 className="text-3xl text-primary">医问诊</h1>
-          <p className="text-muted-foreground mt-2">智能医疗问诊平台</p>
+          <p className="text-white/60">智能医疗问诊平台</p>
         </div>
 
-        <Card className="shadow-lg border-0">
-          <CardHeader className="pb-4">
-            <CardTitle>欢迎使用</CardTitle>
-            <CardDescription>选择您的角色并登录或注册</CardDescription>
-          </CardHeader>
-          <CardContent>
+        <div className="relative z-10 max-w-lg">
+          <blockquote className="text-2xl font-medium leading-relaxed mb-6">
+            "结合人工智能与专业医疗资源，为您提供准确、快速的健康咨询服务。每一份健康，都值得被认真对待。"
+          </blockquote>
+          <cite className="text-white/60 not-italic block">— 医问诊团队</cite>
+        </div>
+
+        <div className="relative z-10 text-sm text-white/40">
+          © 2026 Medical Consultation Platform
+        </div>
+      </div>
+
+      {/* Right Side - Form */}
+      <div className="flex items-center justify-center p-6 md:p-12 bg-background">
+        <div className="w-full max-w-[400px] space-y-8">
+          <div className="text-center lg:text-left">
+            <h1 className="text-2xl font-bold tracking-tight text-foreground">
+              {tab === "login" ? "欢迎回来" : "创建账户"}
+            </h1>
+            <p className="text-muted-foreground mt-2 text-sm">
+              {tab === "login" ? "请输入您的账号信息以登录" : "填写信息以开始使用服务"}
+            </p>
+          </div>
+
+          <div className="space-y-6">
             {/* Role selector */}
-            <div className="flex gap-3 mb-6">
+            <div className="grid grid-cols-2 gap-3 p-1 bg-muted rounded-xl">
               <button
                 type="button"
                 onClick={() => setRole("patient")}
-                className={`flex-1 flex items-center justify-center gap-2 p-3 rounded-xl border-2 transition-all ${
+                className={`flex items-center justify-center gap-2 px-3 py-2.5 rounded-lg text-sm font-medium transition-all ${
                   role === "patient"
-                    ? "border-primary bg-primary/5 text-primary"
-                    : "border-border text-muted-foreground hover:border-primary/30"
+                    ? "bg-white text-foreground shadow-sm ring-1 ring-border"
+                    : "text-muted-foreground hover:text-foreground"
                 }`}
               >
-                <Heart className="w-5 h-5" />
-                <span>患者</span>
+                <Heart className="w-4 h-4" />
+                患者
               </button>
               <button
                 type="button"
                 onClick={() => setRole("doctor")}
-                className={`flex-1 flex items-center justify-center gap-2 p-3 rounded-xl border-2 transition-all ${
+                className={`flex items-center justify-center gap-2 px-3 py-2.5 rounded-lg text-sm font-medium transition-all ${
                   role === "doctor"
-                    ? "border-primary bg-primary/5 text-primary"
-                    : "border-border text-muted-foreground hover:border-primary/30"
+                    ? "bg-white text-foreground shadow-sm ring-1 ring-border"
+                    : "text-muted-foreground hover:text-foreground"
                 }`}
               >
-                <Stethoscope className="w-5 h-5" />
-                <span>医生</span>
+                <Stethoscope className="w-4 h-4" />
+                医生
               </button>
             </div>
 
-            <Tabs value={tab} onValueChange={(v) => { setTab(v); setError(""); }}>
-              <TabsList className="w-full mb-4">
-                <TabsTrigger value="login" className="flex-1">登录</TabsTrigger>
-                <TabsTrigger value="register" className="flex-1">注册</TabsTrigger>
+            {error && (
+              <div className="bg-destructive/10 text-destructive text-sm p-3 rounded-lg flex items-center gap-2 animate-in fade-in slide-in-from-top-1">
+                 <span>⚠️</span> {error}
+              </div>
+            )}
+
+            <Tabs value={tab} onValueChange={(v) => { setTab(v); setError(""); }} className="w-full">
+              <TabsList className="w-full grid grid-cols-2 mb-6">
+                <TabsTrigger value="login">登录</TabsTrigger>
+                <TabsTrigger value="register">注册</TabsTrigger>
               </TabsList>
 
-              {error && (
-                <p className="text-sm text-destructive bg-destructive/10 px-3 py-2 rounded-lg mb-4">
-                  {error}
-                </p>
-              )}
-
-              <TabsContent value="login">
+              <TabsContent value="login" className="space-y-4 data-[state=inactive]:hidden animate-in fade-in slide-in-from-right-4 duration-300">
                 <form onSubmit={handleLogin} className="space-y-4">
-                  <div>
-                    <label className="text-sm text-muted-foreground mb-1.5 block">邮箱</label>
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">邮箱</label>
                     <Input
                       type="email"
-                      placeholder="请输入邮箱"
+                      placeholder="name@example.com"
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
                       required
+                      className="h-11"
                     />
                   </div>
-                  <div>
-                    <label className="text-sm text-muted-foreground mb-1.5 block">密码</label>
+                  <div className="space-y-2">
+                     <div className="flex items-center justify-between">
+                        <label className="text-sm font-medium leading-none">密码</label>
+                        <a href="#" className="text-xs text-primary hover:underline" onClick={(e) => e.preventDefault()}>忘记密码?</a>
+                     </div>
                     <Input
                       type="password"
-                      placeholder="请输入密码"
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
                       required
+                      className="h-11"
                     />
                   </div>
-                  <Button type="submit" className="w-full" disabled={submitting}>
-                    {submitting ? "登录中..." : "登录"}
+                  <Button type="submit" className="w-full h-11 text-base font-medium shadow-lg shadow-primary/20 hover:shadow-primary/30 transition-shadow" disabled={submitting}>
+                    {submitting ? "登录中..." : (
+                      <span className="flex items-center gap-2">
+                        登录 <ArrowRight className="w-4 h-4" />
+                      </span>
+                    )}
                   </Button>
                 </form>
               </TabsContent>
 
-              <TabsContent value="register">
+              <TabsContent value="register" className="space-y-4 data-[state=inactive]:hidden animate-in fade-in slide-in-from-right-4 duration-300">
                 <form onSubmit={handleRegister} className="space-y-4">
-                  <div>
-                    <label className="text-sm text-muted-foreground mb-1.5 block">姓名</label>
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium leading-none">姓名</label>
                     <Input
-                      placeholder="请输入姓名"
+                      placeholder="您的真实姓名"
                       value={name}
                       onChange={(e) => setName(e.target.value)}
                       required
+                      className="h-11"
                     />
                   </div>
-                  <div>
-                    <label className="text-sm text-muted-foreground mb-1.5 block">邮箱</label>
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium leading-none">邮箱</label>
                     <Input
                       type="email"
-                      placeholder="请输入邮箱"
+                      placeholder="name@example.com"
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
                       required
+                      className="h-11"
                     />
                   </div>
-                  <div>
-                    <label className="text-sm text-muted-foreground mb-1.5 block">密码</label>
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium leading-none">设置密码</label>
                     <Input
                       type="password"
-                      placeholder="请设置密码（至少6位）"
+                      placeholder="至少 6 位字符"
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
                       required
+                      className="h-11"
                     />
                   </div>
-                  <Button type="submit" className="w-full" disabled={submitting}>
-                    {submitting ? "注册中..." : "注册"}
+                  <Button type="submit" className="w-full h-11 text-base font-medium shadow-lg shadow-primary/20 hover:shadow-primary/30 transition-shadow" disabled={submitting}>
+                    {submitting ? "注册中..." : "创建账户"}
                   </Button>
                 </form>
               </TabsContent>
             </Tabs>
-          </CardContent>
-        </Card>
+
+            <div className="text-center text-sm text-muted-foreground mt-6">
+              继续即表示您同意我们的<br/>
+              <a href="#" className="underline underline-offset-4 hover:text-primary">服务条款</a> 和 <a href="#" className="underline underline-offset-4 hover:text-primary">隐私政策</a>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );

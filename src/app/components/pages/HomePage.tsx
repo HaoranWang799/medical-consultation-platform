@@ -2,181 +2,220 @@ import React from "react";
 import { useNavigate } from "react-router";
 import { Button } from "../ui/button";
 import { Card, CardContent } from "../ui/card";
-import { ImageWithFallback } from "../figma/ImageWithFallback";
 import {
   Bot,
   Stethoscope,
   ClipboardList,
   Shield,
   ArrowRight,
-  MessageCircle,
+  Activity,
+  CheckCircle2,
 } from "lucide-react";
-
-const features = [
-  {
-    icon: Bot,
-    title: "AI智能问诊",
-    description: "基于AI技术,快速分析您的症状,提供初步诊断建议",
-    color: "bg-teal-50 text-teal-600",
-  },
-  {
-    icon: Stethoscope,
-    title: "真人医生咨询",
-    description: "专业医生在线解答,为您提供个性化的医疗建议",
-    color: "bg-blue-50 text-blue-600",
-  },
-  {
-    icon: ClipboardList,
-    title: "咨询记录管理",
-    description: "完整的咨询历史记录,随时查看和跟进",
-    color: "bg-purple-50 text-purple-600",
-  },
-  {
-    icon: Shield,
-    title: "隐私安全保障",
-    description: "严格保护您的个人信息和医疗数据安全",
-    color: "bg-amber-50 text-amber-600",
-  },
-];
-
-const steps = [
-  { step: "01", title: "描述症状", desc: "详细描述您的身体症状和不适感受" },
-  { step: "02", title: "AI初诊", desc: "AI智能分析,给出初步诊断和建议" },
-  { step: "03", title: "医生咨询", desc: "如需进一步诊断,可转接真人医生" },
-];
 
 export function HomePage() {
   const navigate = useNavigate();
 
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen bg-background">
+      {/* Navbar Placeholder - assuming AppNav is used in layout, but here we just ensure spacing */}
+      
       {/* Hero Section */}
-      <section className="relative overflow-hidden bg-gradient-to-br from-teal-600 via-teal-500 to-cyan-500 text-white">
-        <div className="absolute inset-0 opacity-10">
-          <div className="absolute top-20 left-10 w-72 h-72 rounded-full bg-white/20 blur-3xl" />
-          <div className="absolute bottom-10 right-20 w-96 h-96 rounded-full bg-white/10 blur-3xl" />
-        </div>
-        <div className="max-w-6xl mx-auto px-4 py-20 md:py-28 relative z-10">
-          <div className="grid md:grid-cols-2 gap-12 items-center">
-            <div>
-              <div className="inline-flex items-center gap-2 bg-white/15 rounded-full px-4 py-1.5 mb-6 text-sm backdrop-blur-sm">
-                <MessageCircle className="w-4 h-4" />
-                <span>24小时在线问诊服务</span>
-              </div>
-              <h1 className="text-4xl md:text-5xl mb-6 leading-tight text-white">
-                您的健康,<br />我们用心守护
-              </h1>
-              <p className="text-lg text-white/80 mb-8 max-w-lg">
-                通过AI智能问诊和专业医生在线咨询,随时随地获取医疗建议,让看病不再困难。
-              </p>
-              <div className="flex flex-wrap gap-4">
-                <Button
-                  size="lg"
-                  className="bg-white text-teal-700 hover:bg-white/90 px-8"
-                  onClick={() => navigate("/symptoms")}
-                >
-                  开始咨询
-                  <ArrowRight className="ml-2 w-5 h-5" />
-                </Button>
-                <Button
-                  size="lg"
-                  variant="outline"
-                  className="border-white/40 text-white hover:bg-white/10 px-8"
-                  onClick={() => navigate("/consultations")}
-                >
-                  查看咨询记录
-                </Button>
-              </div>
-            </div>
-            <div className="hidden md:block">
-              <ImageWithFallback
-                src="https://images.unsplash.com/photo-1758691461916-dc7894eb8f94?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxtZWRpY2FsJTIwZG9jdG9yJTIwY29uc3VsdGF0aW9uJTIwaGVhbHRoY2FyZXxlbnwxfHx8fDE3NzMzMDIzMzB8MA&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral"
-                alt="医疗问诊"
-                className="rounded-2xl shadow-2xl w-full object-cover max-h-80"
-              />
-            </div>
+      <section className="relative overflow-hidden pt-20 pb-32 lg:pt-32 lg:pb-40">
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-[600px] bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-primary/10 via-background to-background -z-10" />
+        
+        <div className="max-w-5xl mx-auto px-4 text-center">
+          <div className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/5 px-4 py-1.5 text-sm font-medium text-primary mb-8 animate-in fade-in slide-in-from-bottom-4 duration-1000">
+            <Activity className="w-4 h-4" />
+            <span className="tracking-wide">AI 驱动的智能医疗助手</span>
           </div>
-        </div>
-      </section>
-
-      {/* Features */}
-      <section className="max-w-6xl mx-auto px-4 py-20">
-        <div className="text-center mb-14">
-          <h2 className="text-3xl mb-3">我们的服务</h2>
-          <p className="text-muted-foreground max-w-md mx-auto">
-            为您提供全方位的在线医疗咨询服务
+          
+          <h1 className="text-5xl md:text-7xl font-bold tracking-tight text-foreground mb-8 leading-[1.1]">
+            您的健康 <span className="text-primary relative">
+              全天候
+              <svg className="absolute w-full h-3 -bottom-1 left-0 text-primary/20 -z-10" viewBox="0 0 100 10" preserveAspectRatio="none">
+                <path d="M0 5 Q 50 10 100 5" stroke="currentColor" strokeWidth="8" fill="none" />
+              </svg>
+            </span> 守护
+          </h1>
+          
+          <p className="text-xl text-muted-foreground mb-12 max-w-2xl mx-auto leading-relaxed">
+            结合尖端 AI 技术与专业医生团队，为您提供快速、准确、私密的医疗咨询服务。随时随地，呵护身心。
           </p>
-        </div>
-        <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
-          {features.map((f) => (
-            <Card
-              key={f.title}
-              className="border-0 shadow-sm hover:shadow-md transition-shadow cursor-pointer group"
-            >
-              <CardContent className="pt-6">
-                <div
-                  className={`w-12 h-12 rounded-xl ${f.color} flex items-center justify-center mb-4 group-hover:scale-110 transition-transform`}
-                >
-                  <f.icon className="w-6 h-6" />
-                </div>
-                <h3 className="mb-2">{f.title}</h3>
-                <p className="text-sm text-muted-foreground">{f.description}</p>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      </section>
-
-      {/* Steps */}
-      <section className="bg-white py-20">
-        <div className="max-w-6xl mx-auto px-4">
-          <div className="text-center mb-14">
-            <h2 className="text-3xl mb-3">如何使用</h2>
-            <p className="text-muted-foreground">简单三步,获取专业医疗建议</p>
-          </div>
-          <div className="grid md:grid-cols-3 gap-8">
-            {steps.map((s, i) => (
-              <div key={s.step} className="relative text-center">
-                <div className="text-5xl text-primary/10 mb-4">{s.step}</div>
-                <h3 className="mb-2">{s.title}</h3>
-                <p className="text-sm text-muted-foreground">{s.desc}</p>
-                {i < 2 && (
-                  <ArrowRight className="hidden md:block absolute top-8 -right-4 w-6 h-6 text-primary/30" />
-                )}
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* CTA */}
-      <section className="max-w-6xl mx-auto px-4 py-20">
-        <Card className="bg-gradient-to-r from-teal-500 to-cyan-500 border-0 text-white overflow-hidden relative">
-          <div className="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full -translate-y-1/2 translate-x-1/3" />
-          <CardContent className="py-12 px-8 md:px-16 text-center relative z-10">
-            <h2 className="text-3xl mb-4 text-white">立即开始您的健康咨询</h2>
-            <p className="text-white/80 mb-8 max-w-md mx-auto">
-              无需预约,随时在线咨询,专业医生为您解答
-            </p>
+          
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
             <Button
               size="lg"
-              className="bg-white text-teal-700 hover:bg-white/90 px-10"
+              className="h-14 px-8 text-lg rounded-full shadow-lg shadow-primary/20 hover:shadow-primary/30 transition-all"
               onClick={() => navigate("/symptoms")}
             >
-              开始咨询
-              <ArrowRight className="ml-2 w-5 h-5" />
+              立即咨询 AI
+              <Bot className="ml-2 w-5 h-5" />
             </Button>
-          </CardContent>
-        </Card>
+            <Button
+              size="lg"
+              variant="outline"
+              className="h-14 px-8 text-lg rounded-full border-2 hover:bg-secondary/50"
+              onClick={() => navigate("/consultations")}
+            >
+              查看历史记录
+            </Button>
+          </div>
+
+          {/* Stats / Trust */}
+          <div className="mt-20 flex justify-center gap-8 md:gap-16 text-muted-foreground opacity-80">
+            <div className="flex flex-col items-center">
+              <span className="text-3xl font-bold text-foreground">24/7</span>
+              <span className="text-sm">在线服务</span>
+            </div>
+            <div className="w-px h-12 bg-border" />
+            <div className="flex flex-col items-center">
+              <span className="text-3xl font-bold text-foreground">98%</span>
+              <span className="text-sm">好评率</span>
+            </div>
+            <div className="w-px h-12 bg-border" />
+            <div className="flex flex-col items-center">
+              <span className="text-3xl font-bold text-foreground">1s</span>
+              <span className="text-sm">极速响应</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Features Grid */}
+      <section className="py-24 bg-secondary/30">
+        <div className="max-w-6xl mx-auto px-4">
+          <div className="text-center mb-16">
+            <h2 className="text-3xl font-bold mb-4">为什么选择我们</h2>
+            <p className="text-muted-foreground max-w-lg mx-auto">
+              我们将传统医疗与人工智能完美结合，提供前所未有的就医体验
+            </p>
+          </div>
+          
+          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <FeatureCard 
+              icon={Bot} 
+              title="AI 智能初诊" 
+              desc="秒级分析症状，无论是感冒发烧还是复杂不适，AI 为您提供科学的初步建议。"
+              delay={0}
+            />
+            <FeatureCard 
+              icon={Stethoscope} 
+              title="专业医生复核" 
+              desc="三甲医院资深医生在线坐诊，为 AI 诊断结果提供专业把关和深度建议。"
+              delay={100}
+            />
+            <FeatureCard 
+              icon={ClipboardList} 
+              title="健康档案管理" 
+              desc="自动生成结构化病历，长期追踪您的健康状况，让每一次问诊都有据可循。"
+              delay={200}
+            />
+            <FeatureCard 
+              icon={Shield} 
+              title="隐私三重加密" 
+              desc="采用银行级数据加密技术，确保您的病情隐私绝不外泄，安全无忧。"
+              delay={300}
+            />
+          </div>
+        </div>
+      </section>
+
+      {/* Process Section */}
+      <section className="py-24">
+        <div className="max-w-6xl mx-auto px-4">
+          <div className="grid md:grid-cols-2 gap-16 items-center">
+            <div className="order-2 md:order-1 relative">
+              <div className="absolute inset-0 bg-gradient-to-tr from-primary/20 to-transparent rounded-3xl blur-2xl transform rotate-3" />
+              <div className="relative bg-card border rounded-3xl shadow-xl p-8 space-y-6">
+                <ProcessStep 
+                  num="01" 
+                  title="描述您的症状" 
+                  desc="像聊天一样告诉我们哪里不舒服，支持语音和文字输入。" 
+                />
+                <ProcessStep 
+                  num="02" 
+                  title="获取 AI 分析" 
+                  desc="系统根据千万级医疗数据，即时生成初步诊断报告。" 
+                />
+                <ProcessStep 
+                  num="03" 
+                  title="医生介入治疗" 
+                  desc="必要时一键转接真人医生，获取处方和治疗方案。" 
+                />
+              </div>
+            </div>
+            <div className="order-1 md:order-2 space-y-6">
+              <div className="inline-block p-3 rounded-2xl bg-primary/10 text-primary mb-2">
+                <Activity className="w-8 h-8" />
+              </div>
+              <h2 className="text-3xl font-bold leading-tight">
+                简单三步，<br/>开启智慧医疗新体验
+              </h2>
+              <p className="text-lg text-muted-foreground">
+                告别繁琐的挂号排队，只需一部手机，专业医疗资源触手可及。我们要做的，是让看病变得像通过社交软件聊天一样简单。
+              </p>
+              <ul className="space-y-3 pt-4">
+                <li className="flex items-center gap-3 text-foreground/80">
+                  <CheckCircle2 className="w-5 h-5 text-primary" />
+                  <span>无需下载 App，网页端直接使用</span>
+                </li>
+                <li className="flex items-center gap-3 text-foreground/80">
+                  <CheckCircle2 className="w-5 h-5 text-primary" />
+                  <span>支持多轮对话，深度理解病情</span>
+                </li>
+                <li className="flex items-center gap-3 text-foreground/80">
+                  <CheckCircle2 className="w-5 h-5 text-primary" />
+                  <span>24小时无休，随时待命</span>
+                </li>
+              </ul>
+              <div className="pt-6">
+                 <Button onClick={() => navigate("/symptoms")} size="lg" className="rounded-full px-8">立即体验</Button>
+              </div>
+            </div>
+          </div>
+        </div>
       </section>
 
       {/* Footer */}
-      <footer className="border-t bg-white py-8">
-        <div className="max-w-6xl mx-auto px-4 text-center text-sm text-muted-foreground">
-          <p>医问诊 - 智能医疗问诊平台 &copy; 2026</p>
-          <p className="mt-1">本平台仅供参考,不替代线下医疗诊断</p>
+      <footer className="py-12 border-t">
+        <div className="max-w-6xl mx-auto px-4 flex flex-col md:flex-row justify-between items-center gap-6">
+          <div className="flex items-center gap-2 font-bold text-xl tracking-tight">
+             <Activity className="w-6 h-6 text-primary" />
+             医问诊
+          </div>
+          <p className="text-sm text-muted-foreground">
+            © 2026 Medical Consultation Platform. AI 建议仅供参考，急重症请及时就医。
+          </p>
         </div>
       </footer>
     </div>
   );
+}
+
+function FeatureCard({ icon: Icon, title, desc, delay }: { icon: any, title: string, desc: string, delay: number }) {
+  return (
+    <Card className="border-0 shadow-sm hover:shadow-xl transition-all duration-300 hover:-translate-y-1 bg-card/50 backdrop-blur-sm">
+      <CardContent className="pt-8 px-6 pb-8">
+        <div className="w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center text-primary mb-6 transition-colors group-hover:bg-primary group-hover:text-white">
+          <Icon className="w-7 h-7" />
+        </div>
+        <h3 className="text-xl font-bold mb-3">{title}</h3>
+        <p className="text-muted-foreground leading-relaxed">{desc}</p>
+      </CardContent>
+    </Card>
+  )
+}
+
+function ProcessStep({ num, title, desc }: { num: string, title: string, desc: string }) {
+  return (
+    <div className="flex gap-4 items-start">
+      <div className="flex-shrink-0 w-10 h-10 rounded-full bg-secondary flex items-center justify-center font-bold text-primary">
+        {num}
+      </div>
+      <div>
+        <h4 className="text-lg font-bold mb-1">{title}</h4>
+        <p className="text-sm text-muted-foreground">{desc}</p>
+      </div>
+    </div>
+  )
 }
