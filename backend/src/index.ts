@@ -47,11 +47,28 @@ if (IS_PRODUCTION) {
 }
 
 // ── 启动 ────────────────────────────────────────────────────────────────────
+async function waitForDatabase(maxRetries = 10, delayMs = 3000): Promise<void> {
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      await prisma.$connect();
+      console.log(`✅ 数据库连接成功 (第 ${attempt} 次尝试)`);
+      return;
+    } catch (err) {
+      console.log(`⏳ 数据库连接失败 (第 ${attempt}/${maxRetries} 次)，${delayMs / 1000}s 后重试...`);
+      if (attempt === maxRetries) throw err;
+      await new Promise((r) => setTimeout(r, delayMs));
+    }
+  }
+}
+
 async function bootstrap(): Promise<void> {
   if (!process.env.DATABASE_URL) {
     console.error("❌ 缺少 DATABASE_URL 环境变量，请在 Railway 中添加 PostgreSQL 数据库并关联变量");
     process.exit(1);
   }
+
+  console.log("⏳ 正在连接数据库...");
+  await waitForDatabase();
 
   await ensureDefaultUsers();
 
