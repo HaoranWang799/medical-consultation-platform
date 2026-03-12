@@ -12,6 +12,27 @@ function asUserRole(role: string): UserRole {
   return role === "doctor" ? "doctor" : "patient";
 }
 
+// GET /api/auth/check-email?email={email}[&role={role}]
+router.get("/check-email", async (req: Request, res: Response): Promise<void> => {
+  const email = typeof req.query.email === "string" ? req.query.email.trim().toLowerCase() : "";
+  const rawRole = typeof req.query.role === "string" ? req.query.role : "";
+
+  if (!email) {
+    res.status(400).json({ message: "邮箱为必填项" });
+    return;
+  }
+
+  const exists = rawRole
+    ? Boolean(
+        await prisma.user.findUnique({
+          where: { email_role: { email, role: asUserRole(rawRole) } },
+        })
+      )
+    : Boolean(await prisma.user.findFirst({ where: { email } }));
+
+  res.json({ exists });
+});
+
 // POST /api/auth/login
 router.post("/login", async (req: Request, res: Response): Promise<void> => {
   const { email, password, role } = req.body as {

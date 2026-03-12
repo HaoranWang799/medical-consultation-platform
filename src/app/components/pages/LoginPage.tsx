@@ -1,48 +1,90 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router";
 import { useAuth, UserRole } from "../../context/AuthContext";
+import { api } from "../../../lib/api";
 import { Button } from "../ui/button";
 import { Input } from "../ui/input";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "../ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "../ui/tabs";
 import { Heart, Stethoscope, Activity, ArrowRight } from "lucide-react";
 
 export function LoginPage() {
   const { login, register } = useAuth();
   const navigate = useNavigate();
-  const [tab, setTab] = useState("login");
   const [role, setRole] = useState<UserRole>("patient");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [name, setName] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [emailChecked, setEmailChecked] = useState(false);
+  const [emailExists, setEmailExists] = useState(false);
   const [error, setError] = useState("");
-  const [submitting, setSubmitting] = useState(false);
+  const [loading, setLoading] = useState(false);
+
+  const resetEmailCheckState = () => {
+    setEmailChecked(false);
+    setEmailExists(false);
+    setPassword("");
+    setConfirmPassword("");
+  };
+
+  const handleCheckEmail = async (e?: React.FormEvent) => {
+    e?.preventDefault();
+    if (loading) {
+      return;
+    }
+
+    const normalizedEmail = email.trim().toLowerCase();
+    if (!normalizedEmail) {
+      setError("请输入邮箱地址");
+      return;
+    }
+
+    setError("");
+    setLoading(true);
+    try {
+      const result = await api.get<{ exists: boolean }>(
+        `/auth/check-email?email=${encodeURIComponent(normalizedEmail)}&role=${role}`
+      );
+      setEmail(normalizedEmail);
+      setEmailExists(result.exists);
+      setEmailChecked(true);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "邮箱校验失败，请稍后重试");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
-    setSubmitting(true);
+    setLoading(true);
     try {
       await login(email, password, role);
       navigate(role === "doctor" ? "/doctor" : "/home");
     } catch (err) {
       setError(err instanceof Error ? err.message : "登录失败，请重试");
     } finally {
-      setSubmitting(false);
+      setLoading(false);
     }
   };
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
-    setSubmitting(true);
+
+    if (password !== confirmPassword) {
+      setError("两次输入的密码不一致");
+      return;
+    }
+
+    setLoading(true);
     try {
-      await register(name, email, password, role);
+      const derivedName = email.split("@")[0] || "用户";
+      await register(derivedName, email, password, role);
       navigate(role === "doctor" ? "/doctor" : "/home");
     } catch (err) {
       setError(err instanceof Error ? err.message : "注册失败，请重试");
     } finally {
-      setSubmitting(false);
+      setLoading(false);
     }
   };
 
@@ -77,11 +119,9 @@ export function LoginPage() {
       <div className="flex items-center justify-center p-6 md:p-12 bg-background">
         <div className="w-full max-w-[400px] space-y-8">
           <div className="text-center lg:text-left">
-            <h1 className="text-2xl font-bold tracking-tight text-foreground">
-              {tab === "login" ? "欢迎回来" : "创建账户"}
-            </h1>
+            <h1 className="text-2xl font-bold tracking-tight text-foreground">欢迎使用医问诊</h1>
             <p className="text-muted-foreground mt-2 text-sm">
-              {tab === "login" ? "请输入您的账号信息以登录" : "填写信息以开始使用服务"}
+              {!emailChecked ? "请输入邮箱，系统将自动识别登录或注册" : emailExists ? "检测到账号，请输入密码登录" : "未检测到账号，请设置密码完成注册"}
             </p>
           </div>
 
@@ -90,7 +130,13 @@ export function LoginPage() {
             <div className="grid grid-cols-2 gap-3 p-1 bg-muted rounded-xl">
               <button
                 type="button"
-                onClick={() => setRole("patient")}
+                onClick={() => {
+                  setRole("patient");
+                  setError("");
+                  if (emailChecked) {
+                    resetEmailCheckState();
+                  }
+                }}
                 className={`flex items-center justify-center gap-2 px-3 py-2.5 rounded-lg text-sm font-medium transition-all ${
                   role === "patient"
                     ? "bg-white text-foreground shadow-sm ring-1 ring-border"
@@ -102,7 +148,13 @@ export function LoginPage() {
               </button>
               <button
                 type="button"
-                onClick={() => setRole("doctor")}
+                onClick={() => {
+                  setRole("doctor");
+                  setError("");
+                  if (emailChecked) {
+                    resetEmailCheckState();
+                  }
+                }}
                 className={`flex items-center justify-center gap-2 px-3 py-2.5 rounded-lg text-sm font-medium transition-all ${
                   role === "doctor"
                     ? "bg-white text-foreground shadow-sm ring-1 ring-border"
@@ -120,30 +172,58 @@ export function LoginPage() {
               </div>
             )}
 
-            <Tabs value={tab} onValueChange={(v) => { setTab(v); setError(""); }} className="w-full">
-              <TabsList className="w-full grid grid-cols-2 mb-6">
-                <TabsTrigger value="login">登录</TabsTrigger>
-                <TabsTrigger value="register">注册</TabsTrigger>
-              </TabsList>
-
-              <TabsContent value="login" className="space-y-4 data-[state=inactive]:hidden animate-in fade-in slide-in-from-right-4 duration-300">
-                <form onSubmit={handleLogin} className="space-y-4">
+            <div className="space-y-4 rounded-2xl border border-border/70 bg-card p-5 shadow-sm transition-all duration-300 animate-in fade-in slide-in-from-bottom-2">
+              {!emailChecked && (
+                <form onSubmit={handleCheckEmail} className="space-y-4">
                   <div className="space-y-2">
-                    <label className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">邮箱</label>
+                    <label className="text-sm font-medium leading-none">邮箱</label>
                     <Input
                       type="email"
                       placeholder="name@example.com"
                       value={email}
-                      onChange={(e) => setEmail(e.target.value)}
+                      onChange={(e) => {
+                        setEmail(e.target.value);
+                        setError("");
+                        if (emailChecked) {
+                          resetEmailCheckState();
+                        }
+                      }}
+                      onBlur={() => {
+                        if (!emailChecked && email.trim()) {
+                          void handleCheckEmail();
+                        }
+                      }}
                       required
                       className="h-11"
                     />
                   </div>
+                  <Button type="submit" className="w-full h-11 text-base font-medium shadow-lg shadow-primary/20 hover:shadow-primary/30 transition-shadow" disabled={loading}>
+                    {loading ? "检测中..." : (
+                      <span className="flex items-center gap-2">
+                        下一步 <ArrowRight className="w-4 h-4" />
+                      </span>
+                    )}
+                  </Button>
+                </form>
+              )}
+
+              {emailChecked && emailExists && (
+                <form onSubmit={handleLogin} className="space-y-4 animate-in fade-in slide-in-from-right-4 duration-300">
                   <div className="space-y-2">
-                     <div className="flex items-center justify-between">
-                        <label className="text-sm font-medium leading-none">密码</label>
-                        <a href="#" className="text-xs text-primary hover:underline" onClick={(e) => e.preventDefault()}>忘记密码?</a>
-                     </div>
+                    <label className="text-sm font-medium leading-none">邮箱</label>
+                    <Input value={email} readOnly className="h-11 bg-muted" />
+                  </div>
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <label className="text-sm font-medium leading-none">密码</label>
+                      <button
+                        type="button"
+                        onClick={resetEmailCheckState}
+                        className="text-xs text-primary hover:underline"
+                      >
+                        更换邮箱
+                      </button>
+                    </div>
                     <Input
                       type="password"
                       value={password}
@@ -152,38 +232,17 @@ export function LoginPage() {
                       className="h-11"
                     />
                   </div>
-                  <Button type="submit" className="w-full h-11 text-base font-medium shadow-lg shadow-primary/20 hover:shadow-primary/30 transition-shadow" disabled={submitting}>
-                    {submitting ? "登录中..." : (
-                      <span className="flex items-center gap-2">
-                        登录 <ArrowRight className="w-4 h-4" />
-                      </span>
-                    )}
+                  <Button type="submit" className="w-full h-11 text-base font-medium shadow-lg shadow-primary/20 hover:shadow-primary/30 transition-shadow" disabled={loading}>
+                    {loading ? "登录中..." : "登录"}
                   </Button>
                 </form>
-              </TabsContent>
+              )}
 
-              <TabsContent value="register" className="space-y-4 data-[state=inactive]:hidden animate-in fade-in slide-in-from-right-4 duration-300">
-                <form onSubmit={handleRegister} className="space-y-4">
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium leading-none">姓名</label>
-                    <Input
-                      placeholder="您的真实姓名"
-                      value={name}
-                      onChange={(e) => setName(e.target.value)}
-                      required
-                      className="h-11"
-                    />
-                  </div>
+              {emailChecked && !emailExists && (
+                <form onSubmit={handleRegister} className="space-y-4 animate-in fade-in slide-in-from-right-4 duration-300">
                   <div className="space-y-2">
                     <label className="text-sm font-medium leading-none">邮箱</label>
-                    <Input
-                      type="email"
-                      placeholder="name@example.com"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      required
-                      className="h-11"
-                    />
+                    <Input value={email} readOnly className="h-11 bg-muted" />
                   </div>
                   <div className="space-y-2">
                     <label className="text-sm font-medium leading-none">设置密码</label>
@@ -196,12 +255,31 @@ export function LoginPage() {
                       className="h-11"
                     />
                   </div>
-                  <Button type="submit" className="w-full h-11 text-base font-medium shadow-lg shadow-primary/20 hover:shadow-primary/30 transition-shadow" disabled={submitting}>
-                    {submitting ? "注册中..." : "创建账户"}
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <label className="text-sm font-medium leading-none">确认密码</label>
+                      <button
+                        type="button"
+                        onClick={resetEmailCheckState}
+                        className="text-xs text-primary hover:underline"
+                      >
+                        更换邮箱
+                      </button>
+                    </div>
+                    <Input
+                      type="password"
+                      value={confirmPassword}
+                      onChange={(e) => setConfirmPassword(e.target.value)}
+                      required
+                      className="h-11"
+                    />
+                  </div>
+                  <Button type="submit" className="w-full h-11 text-base font-medium shadow-lg shadow-primary/20 hover:shadow-primary/30 transition-shadow" disabled={loading}>
+                    {loading ? "注册中..." : "注册"}
                   </Button>
                 </form>
-              </TabsContent>
-            </Tabs>
+              )}
+            </div>
 
             <div className="text-center text-sm text-muted-foreground mt-6">
               继续即表示您同意我们的<br/>
