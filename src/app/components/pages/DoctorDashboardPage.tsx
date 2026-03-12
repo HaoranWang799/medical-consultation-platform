@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router";
 import { useConsultations, ConsultationStatus } from "../../context/ConsultationContext";
 import { useAuth } from "../../context/AuthContext";
@@ -26,10 +26,18 @@ const statusConfig: Record<ConsultationStatus, { label: string; color: string; i
 type FilterStatus = "all" | ConsultationStatus;
 
 export function DoctorDashboardPage() {
-  const { consultations } = useConsultations();
+  const { consultations, fetchConsultations } = useConsultations();
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const [filter, setFilter] = useState<FilterStatus>("all");
+
+  // 每 10 秒自动刷新咨询列表
+  useEffect(() => {
+    const timer = setInterval(() => {
+      fetchConsultations();
+    }, 10000);
+    return () => clearInterval(timer);
+  }, [fetchConsultations]);
 
   const filtered =
     filter === "all"

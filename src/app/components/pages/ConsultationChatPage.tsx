@@ -17,12 +17,21 @@ import {
 export function ConsultationChatPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { consultations, addMessage, updateStatus } = useConsultations();
+  const { consultations, addMessage, updateStatus, refreshConsultation } = useConsultations();
   const { user } = useAuth();
   const [input, setInput] = useState("");
   const scrollRef = useRef<HTMLDivElement>(null);
 
   const consultation = consultations.find((c) => c.id === id);
+
+  // 定时轮询最新消息（每 5 秒）
+  useEffect(() => {
+    if (!id || consultation?.status === "completed") return;
+    const timer = setInterval(() => {
+      refreshConsultation(id);
+    }, 5000);
+    return () => clearInterval(timer);
+  }, [id, consultation?.status, refreshConsultation]);
 
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
@@ -52,18 +61,6 @@ export function ConsultationChatPage() {
       updateStatus(consultation.id, "doctor_replied");
     }
     setInput("");
-
-    // Simulate reply for patient
-    if (!isDoctor) {
-      setTimeout(() => {
-        addMessage(consultation.id, {
-          sender: "doctor",
-          content: "收到您的消息,我正在查看您的情况。请稍等,我会尽快回复您。",
-          timestamp: new Date().toLocaleTimeString("zh-CN", { hour: "2-digit", minute: "2-digit" }),
-        });
-        updateStatus(consultation.id, "doctor_replied");
-      }, 3000);
-    }
   };
 
   const handleComplete = () => {

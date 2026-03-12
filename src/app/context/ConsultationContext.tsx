@@ -31,6 +31,7 @@ interface ConsultationContextType {
   consultations: Consultation[];
   isLoading: boolean;
   fetchConsultations: () => Promise<void>;
+  refreshConsultation: (consultationId: string) => Promise<Consultation | null>;
   addConsultation: (symptoms: string, aiMessages: ChatMessage[]) => Promise<string>;
   addMessage: (consultationId: string, message: Omit<ChatMessage, "id">) => Promise<void>;
   updateStatus: (consultationId: string, status: ConsultationStatus) => Promise<void>;
@@ -62,6 +63,18 @@ export function ConsultationProvider({ children }: { children: ReactNode }) {
       setConsultations([]);
     }
   }, [user, fetchConsultations]);
+
+  const refreshConsultation = useCallback(async (consultationId: string): Promise<Consultation | null> => {
+    try {
+      const data = await api.get<Consultation>(`/consultations/${consultationId}`);
+      setConsultations((prev) =>
+        prev.map((c) => (c.id === consultationId ? data : c))
+      );
+      return data;
+    } catch {
+      return null;
+    }
+  }, []);
 
   const addConsultation = async (
     symptoms: string,
@@ -107,7 +120,7 @@ export function ConsultationProvider({ children }: { children: ReactNode }) {
 
   return (
     <ConsultationContext.Provider
-      value={{ consultations, isLoading, fetchConsultations, addConsultation, addMessage, updateStatus }}
+      value={{ consultations, isLoading, fetchConsultations, refreshConsultation, addConsultation, addMessage, updateStatus }}
     >
       {children}
     </ConsultationContext.Provider>
