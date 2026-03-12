@@ -6,10 +6,17 @@ import type { AuthRequest } from "../middleware/auth.js";
 const router = Router();
 router.use(authenticate);
 
-// 支持 OpenAI / DeepSeek / 通义千问 等兼容接口
+// ── AI 提供商配置 ──────────────────────────────────────────────────────────
+// 主提供商（AI_API_KEY / AI_API_BASE / AI_MODEL）
+// 备用提供商（AI_FALLBACK_KEY / AI_FALLBACK_BASE / AI_FALLBACK_MODEL）
+// 若主提供商失败，自动尝试备用
 const AI_API_KEY    = process.env.AI_API_KEY    ?? "";
 const AI_API_BASE   = process.env.AI_API_BASE   ?? "https://api.openai.com/v1";
 const AI_MODEL      = process.env.AI_MODEL      ?? "gpt-4o-mini";
+
+const AI_FALLBACK_KEY   = process.env.AI_FALLBACK_KEY   ?? "";
+const AI_FALLBACK_BASE  = process.env.AI_FALLBACK_BASE  ?? "";
+const AI_FALLBACK_MODEL = process.env.AI_FALLBACK_MODEL ?? "";
 
 const SYSTEM_PROMPT = `你是一位专业、耐心的AI医疗助手。
 职责：
@@ -65,39 +72,57 @@ router.post("/chat", async (req: AuthRequest, res: Response): Promise<void> => {
   }
 
   try {
-    const apiUrl = `${AI_API_BASE}/chat/completions`;
-    console.log(`🤖 调用 AI API: ${apiUrl}，模型: ${AI_MODEL}`);
-    
-    const response = await fetch(apiUrl, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${AI_API_KEY}`,
-      },
-      body: JSON.stringify({
-        model: AI_MODEL,
-        messages: chatMessages,
-        max_tokens: 800,
-        temperature: 0.7,
-      }),
-    });
-
-    if (!response.ok) {
-      const err = await response.text();
-      console.error(`❌ AI API 错误 (${response.status}):`, err);
-      res.status(502).json({ message: "AI 服务暂时不可用，请稍后重试" });
-      return;
-    }
-
-    const data = await response.json() as {
-      choices: Array<{ message: { content: string } }>;
-    };
-    const content = data.choices?.[0]?.message?.content ?? "AI 暂时无法回复，请稍后重试。";
+    const content = await callAI(chatMessages);
     res.json({ content });
   } catch (err) {
     console.error("AI 请求失败:", err);
     res.status(502).json({ message: "AI 服务连接失败，请稍后重试" });
   }
 });
+
+/** 调用单个 AI 提供商 */
+async function callProvider(apiBase: string, apiKey: string, model: string, messages: Array<{ role: string; content: string }>): Promise<string> {
+  const apiUrl = `${apiBase}/chat/completions`;
+  console.log(`🤖 调用 AI API: ${apiUrl}，模型: ${model}`);
+
+  const response = await fetch(apiUrl, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${apiKey}`,
+    },
+    body: JSON.stringify({
+      model,
+      messages,
+      max_tokens: 800,
+      temperature: 0.7,
+    }),
+  });
+
+  if (!response.ok) {
+    const err = await response.text();
+    throw new Error(`API error (${response.status}): ${err}`);
+  }
+
+  const data = await response.json() as {
+    choices: Array<{ message: { content: string } }>;
+  };
+  return data.choices?.[0]?.message?.content ?? "AI 暂时无法回复，请稍后重试。";
+}
+
+/** 主提供商优先，失败时自动切换备用 */
+async function callAI(messages: Array<{ role: string; content: string }>): Promise<string> {
+  try {
+    return await callProvider(AI_API_BASE, AI_API_KEY, AI_MODEL, messages);
+  } catch (primaryErr) {
+    console.error(`❌ 主 AI (${AI_MODEL}) 失败:`, primaryErr instanceof Error ? primaryErr.message : primaryErr);
+
+    if (AI_FALLBACK_KEY && AI_FALLBACK_BASE && AI_FALLBACK_MODEL) {
+      console.log(`🔄 切换备用 AI: ${AI_FALLBACK_MODEL}`);
+      return await callProvider(AI_FALLBACK_BASE, AI_FALLBACK_KEY, AI_FALLBACK_MODEL, messages);
+    }
+    throw primaryErr;
+  }
+}
 
 export default router;
