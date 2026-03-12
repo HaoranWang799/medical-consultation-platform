@@ -76,7 +76,7 @@ async function bootstrap(): Promise<void> {
     console.log(`✅ 服务已启动: http://localhost:${PORT}`);
     console.log(`   NODE_ENV: ${process.env.NODE_ENV}`);
     console.log(`   AI_API_BASE: ${process.env.AI_API_BASE ?? "(未设置，使用默认 OpenAI)"}`);
-    console.log(`   AI_MODEL: ${process.env.AI_MODEL ?? "(未设置, 使用默认 gpt-4o-mini)"}`);
+    console.log(`   AI_MODEL: ${process.env.AI_MODEL ?? "(未设置, 使用默认 deepseek-chat)"}`);
     if (!IS_PRODUCTION) {
       console.log("   默认账号 - 患者: patient@example.com / patient123");
       console.log("   默认账号 - 医生: doctor@example.com  / doctor123");

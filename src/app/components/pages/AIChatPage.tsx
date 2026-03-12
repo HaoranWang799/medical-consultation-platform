@@ -104,7 +104,7 @@ export function AIChatPage() {
             <h3 className="leading-tight flex items-center gap-2">
               {isPremium ? "高级AI深度分析" : "AI智能问诊"}
               {isPremium && (
-                <span className="text-[10px] font-medium bg-violet-100 text-violet-700 px-1.5 py-0.5 rounded-full">GPT-4o</span>
+                <span className="text-[10px] font-medium bg-violet-100 text-violet-700 px-1.5 py-0.5 rounded-full">DeepSeek-Reasoner</span>
               )}
             </h3>
             <div className="flex items-center gap-1.5">
@@ -176,7 +176,7 @@ export function AIChatPage() {
             <div className="bg-white border shadow-sm rounded-2xl rounded-tl-sm px-4 py-3">
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
                 <Loader2 className="w-4 h-4 animate-spin" />
-                {isPremium ? "GPT-4o 深度分析中..." : "AI正在分析..."}
+                {isPremium ? "DeepSeek 深度分析中..." : "AI正在分析..."}
               </div>
             </div>
           </div>

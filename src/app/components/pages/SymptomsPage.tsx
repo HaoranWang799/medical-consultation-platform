@@ -97,7 +97,7 @@ export function SymptomsPage() {
               onClick={handlePremiumStart}
             >
               <Sparkles className="mr-2 w-5 h-5" />
-              高级AI深度分析 (GPT-4o)
+              高级AI深度分析 (DeepSeek-Reasoner)
             </Button>
           </CardContent>
         </Card>
