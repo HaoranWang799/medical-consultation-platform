@@ -7,14 +7,23 @@ export interface User {
   id: string;
   name: string;
   email: string;
+  phone?: string;
   role: UserRole;
 }
 
 interface AuthContextType {
   user: User | null;
   isLoading: boolean;
-  login: (email: string, password: string, role: UserRole) => Promise<void>;
-  register: (name: string, email: string, password: string, role: UserRole) => Promise<void>;
+  login: (account: string, password: string, role: UserRole) => Promise<void>;
+  register: (name: string, account: string, password: string, role: UserRole) => Promise<void>;
+  sendPhoneCode: (phone: string, role: UserRole) => Promise<{ debugCode?: string }>;
+  registerByPhone: (
+    name: string,
+    phone: string,
+    code: string,
+    password: string,
+    role: UserRole
+  ) => Promise<void>;
   logout: () => void;
 }
 
@@ -38,10 +47,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
-  const login = async (email: string, password: string, role: UserRole): Promise<void> => {
+  const login = async (account: string, password: string, role: UserRole): Promise<void> => {
     const { token, user } = await api.post<{ token: string; user: User }>(
       "/auth/login",
-      { email, password, role }
+      { account, password, role }
     );
     setToken(token);
     setUser(user);
@@ -49,13 +58,46 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const register = async (
     name: string,
-    email: string,
+    account: string,
+    password: string,
+    role: UserRole
+  ): Promise<void> => {
+    const normalizedAccount = account.trim();
+    const isEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedAccount);
+    const { token, user } = await api.post<{ token: string; user: User }>(
+      "/auth/register",
+      {
+        name,
+        email: isEmail ? normalizedAccount : "",
+        phone: isEmail ? "" : normalizedAccount,
+        password,
+        role,
+      }
+    );
+    setToken(token);
+    setUser(user);
+  };
+
+  const sendPhoneCode = async (
+    phone: string,
+    role: UserRole
+  ): Promise<{ debugCode?: string }> => {
+    return api.post<{ message: string; debugCode?: string }>("/auth/send-phone-code", {
+      phone,
+      role,
+    });
+  };
+
+  const registerByPhone = async (
+    name: string,
+    phone: string,
+    code: string,
     password: string,
     role: UserRole
   ): Promise<void> => {
     const { token, user } = await api.post<{ token: string; user: User }>(
-      "/auth/register",
-      { name, email, password, role }
+      "/auth/register-by-phone",
+      { name, phone, code, password, role }
     );
     setToken(token);
     setUser(user);
@@ -67,7 +109,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, isLoading, login, register, logout }}>
+    <AuthContext.Provider
+      value={{ user, isLoading, login, register, sendPhoneCode, registerByPhone, logout }}
+    >
       {children}
     </AuthContext.Provider>
   );

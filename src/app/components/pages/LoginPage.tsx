@@ -93,61 +93,79 @@ function HeroPanel() {
 /* ───────── Auth card (right panel) ───────── */
 
 function AuthCard() {
-  const { login, register } = useAuth();
+  const { login, register, sendPhoneCode, registerByPhone } = useAuth();
   const navigate = useNavigate();
   const requestIdRef = useRef(0);
 
   const [role, setRole] = useState<UserRole>("patient");
-  const [email, setEmail] = useState("");
+  const [account, setAccount] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-  const [emailExists, setEmailExists] = useState<boolean | null>(null);
-  const [checkingEmail, setCheckingEmail] = useState(false);
+  const [accountExists, setAccountExists] = useState<boolean | null>(null);
+  const [checkingAccount, setCheckingAccount] = useState(false);
+  const [verificationCode, setVerificationCode] = useState("");
+  const [sendingCode, setSendingCode] = useState(false);
+  const [countdown, setCountdown] = useState(0);
+  const [debugCode, setDebugCode] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  /* ── 500ms debounced email check ── */
+  const normalizePhone = (value: string) => value.replace(/\D/g, "");
+  const isEmail = (value: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim().toLowerCase());
+  const isPhone = (value: string) => /^1\d{10}$/.test(normalizePhone(value));
+
+  /* ── 500ms debounced account check ── */
   useEffect(() => {
-    const normalized = email.trim().toLowerCase();
-    if (!normalized || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalized)) {
-      setEmailExists(null);
-      setCheckingEmail(false);
+    const normalized = account.trim();
+    const normalizedValue = isEmail(normalized)
+      ? normalized.toLowerCase()
+      : normalizePhone(normalized);
+
+    if (!normalizedValue || (!isEmail(normalized) && !isPhone(normalized))) {
+      setAccountExists(null);
+      setCheckingAccount(false);
       setPassword("");
       setConfirmPassword("");
       return;
     }
 
     setError("");
-    setCheckingEmail(true);
+    setCheckingAccount(true);
     const rid = ++requestIdRef.current;
 
     const timer = window.setTimeout(async () => {
       try {
         const res = await api.get<{ exists: boolean }>(
-          `/auth/check-email?email=${encodeURIComponent(normalized)}&role=${role}`
+          `/auth/check-account?account=${encodeURIComponent(normalizedValue)}&role=${role}`
         );
         if (requestIdRef.current !== rid) return;
-        setEmail(normalized);
-        setEmailExists(res.exists);
+        setAccount(normalizedValue);
+        setAccountExists(res.exists);
       } catch (err) {
         if (requestIdRef.current !== rid) return;
-        setEmailExists(null);
-        setError(err instanceof Error ? err.message : "邮箱检测失败，请重试");
+        setAccountExists(null);
+        setError(err instanceof Error ? err.message : "账号检测失败，请重试");
       } finally {
-        if (requestIdRef.current === rid) setCheckingEmail(false);
+        if (requestIdRef.current === rid) setCheckingAccount(false);
       }
     }, 500);
 
     return () => window.clearTimeout(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [email, role]);
+  }, [account, role]);
+
+  useEffect(() => {
+    if (countdown <= 0) return;
+    const timer = window.setTimeout(() => setCountdown((value) => value - 1), 1000);
+    return () => window.clearTimeout(timer);
+  }, [countdown]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
     setLoading(true);
     try {
-      await login(email, password, role);
+      await login(account, password, role);
       navigate(role === "doctor" ? "/doctor" : "/home");
     } catch (err) {
       setError(err instanceof Error ? err.message : "登录失败，请重试");
@@ -165,7 +183,8 @@ function AuthCard() {
     }
     setLoading(true);
     try {
-      await register(email.split("@")[0] || "用户", email, password, role);
+      const displayName = isEmail(account) ? account.split("@")[0] || "用户" : `用户${account.slice(-4)}`;
+      await register(displayName, account, password, role);
       navigate(role === "doctor" ? "/doctor" : "/home");
     } catch (err) {
       setError(err instanceof Error ? err.message : "注册失败，请重试");
@@ -174,20 +193,68 @@ function AuthCard() {
     }
   };
 
+  const handlePhoneRegister = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError("");
+    if (password !== confirmPassword) {
+      setError("两次输入的密码不一致");
+      return;
+    }
+    if (!verificationCode.trim()) {
+      setError("请输入验证码");
+      return;
+    }
+
+    setLoading(true);
+    try {
+      await registerByPhone(`用户${account.slice(-4)}`, account, verificationCode, password, role);
+      navigate(role === "doctor" ? "/doctor" : "/home");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "注册失败，请重试");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSendCode = async () => {
+    if (!isPhone(account)) {
+      setError("请输入有效的手机号");
+      return;
+    }
+
+    setError("");
+    setSendingCode(true);
+    try {
+      const res = await sendPhoneCode(account, role);
+      setCountdown(60);
+      setDebugCode(res.debugCode ?? "");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "验证码发送失败，请重试");
+    } finally {
+      setSendingCode(false);
+    }
+  };
+
   const resetEmail = () => {
-    setEmail("");
-    setEmailExists(null);
+    setAccount("");
+    setAccountExists(null);
     setPassword("");
     setConfirmPassword("");
+    setVerificationCode("");
+    setSendingCode(false);
+    setCountdown(0);
+    setDebugCode("");
     setError("");
   };
 
   const modeLabel =
-    emailExists === null
-      ? "输入邮箱，系统自动识别登录或注册"
-      : emailExists
+    accountExists === null
+      ? "输入邮箱或手机号，系统自动识别登录或注册"
+      : accountExists
         ? "已检测到账号，请输入密码"
-        : "新邮箱，请设置密码完成注册";
+        : isPhone(account)
+          ? "新手机号，请先获取验证码再完成注册"
+          : "新邮箱，请设置密码完成注册";
 
   return (
     <div
@@ -243,33 +310,33 @@ function AuthCard() {
             {/* email */}
             <div className="space-y-1.5">
               <div className="flex items-center justify-between">
-                <label htmlFor="email" className="text-sm font-medium text-gray-700">邮箱</label>
-                {emailExists !== null && (
+                <label htmlFor="account" className="text-sm font-medium text-gray-700">邮箱或手机号</label>
+                {accountExists !== null && (
                   <button type="button" onClick={resetEmail} className="text-xs text-teal-600 hover:underline">
-                    更换邮箱
+                    更换账号
                   </button>
                 )}
               </div>
               <div className="relative">
                 <input
-                  id="email"
-                  type="email"
-                  value={email}
-                  readOnly={emailExists !== null}
+                  id="account"
+                  type="text"
+                  value={account}
+                  readOnly={accountExists !== null}
                   onChange={(e) => {
-                    setEmail(e.target.value);
+                    setAccount(e.target.value);
                     setError("");
-                    setEmailExists(null);
+                    setAccountExists(null);
                     setPassword("");
                     setConfirmPassword("");
                   }}
-                  placeholder="name@example.com"
+                  placeholder="name@example.com 或 13800138000"
                   className={`h-11 w-full rounded-lg border border-gray-300 px-3 pr-10 text-sm transition-all focus:border-teal-500 focus:outline-none focus:ring-2 focus:ring-teal-500/30 ${
-                    emailExists !== null ? "bg-gray-50 text-gray-500" : ""
+                    accountExists !== null ? "bg-gray-50 text-gray-500" : ""
                   }`}
                   required
                 />
-                {checkingEmail && (
+                {checkingAccount && (
                   <Loader2 className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 animate-spin text-teal-600" />
                 )}
               </div>
@@ -278,10 +345,10 @@ function AuthCard() {
             {/* dynamic fields */}
             <div
               className={`overflow-hidden transition-all duration-300 ${
-                emailExists === null ? "max-h-0 opacity-0" : "max-h-[420px] opacity-100"
+                accountExists === null ? "max-h-0 opacity-0" : "max-h-[420px] opacity-100"
               }`}
             >
-              {emailExists === true && (
+              {accountExists === true && (
                 <form onSubmit={handleLogin} className="space-y-4">
                   <div className="space-y-1.5">
                     <label htmlFor="pwd" className="text-sm font-medium text-gray-700">密码</label>
@@ -304,7 +371,7 @@ function AuthCard() {
                 </form>
               )}
 
-              {emailExists === false && (
+              {accountExists === false && !isPhone(account) && (
                 <form onSubmit={handleRegister} className="space-y-4">
                   <div className="space-y-1.5">
                     <label htmlFor="pwd" className="text-sm font-medium text-gray-700">设置密码</label>
@@ -335,6 +402,69 @@ function AuthCard() {
                     className="h-11 w-full rounded-lg bg-teal-600 font-medium text-white shadow-lg shadow-teal-600/25 transition-all hover:bg-teal-700 disabled:cursor-not-allowed disabled:opacity-60"
                   >
                     {loading ? "注册中…" : "注册"}
+                  </button>
+                </form>
+              )}
+
+              {accountExists === false && isPhone(account) && (
+                <form onSubmit={handlePhoneRegister} className="space-y-4">
+                  <div className="space-y-1.5">
+                    <label htmlFor="sms-code" className="text-sm font-medium text-gray-700">短信验证码</label>
+                    <div className="flex gap-2">
+                      <input
+                        id="sms-code"
+                        type="text"
+                        inputMode="numeric"
+                        value={verificationCode}
+                        onChange={(e) => setVerificationCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
+                        placeholder="6位验证码"
+                        className="h-11 flex-1 rounded-lg border border-gray-300 px-3 text-sm focus:border-teal-500 focus:outline-none focus:ring-2 focus:ring-teal-500/30"
+                        required
+                      />
+                      <button
+                        type="button"
+                        disabled={sendingCode || countdown > 0}
+                        onClick={handleSendCode}
+                        className="h-11 min-w-[112px] rounded-lg border border-teal-200 bg-teal-50 px-3 text-sm font-medium text-teal-700 transition hover:bg-teal-100 disabled:cursor-not-allowed disabled:opacity-60"
+                      >
+                        {sendingCode ? "发送中…" : countdown > 0 ? `${countdown}s` : "获取验证码"}
+                      </button>
+                    </div>
+                    {debugCode && (
+                      <p className="text-xs text-amber-600">
+                        调试验证码：{debugCode}
+                      </p>
+                    )}
+                  </div>
+                  <div className="space-y-1.5">
+                    <label htmlFor="pwd-phone" className="text-sm font-medium text-gray-700">设置密码</label>
+                    <input
+                      id="pwd-phone"
+                      type="password"
+                      placeholder="至少 6 位字符"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      className="h-11 w-full rounded-lg border border-gray-300 px-3 text-sm focus:border-teal-500 focus:outline-none focus:ring-2 focus:ring-teal-500/30"
+                      required
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <label htmlFor="cpwd-phone" className="text-sm font-medium text-gray-700">确认密码</label>
+                    <input
+                      id="cpwd-phone"
+                      type="password"
+                      value={confirmPassword}
+                      onChange={(e) => setConfirmPassword(e.target.value)}
+                      className="h-11 w-full rounded-lg border border-gray-300 px-3 text-sm focus:border-teal-500 focus:outline-none focus:ring-2 focus:ring-teal-500/30"
+                      required
+                    />
+                  </div>
+                  <button
+                    type="submit"
+                    disabled={loading}
+                    className="h-11 w-full rounded-lg bg-teal-600 font-medium text-white shadow-lg shadow-teal-600/25 transition-all hover:bg-teal-700 disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    {loading ? "注册中…" : "验证码注册"}
                   </button>
                 </form>
               )}
