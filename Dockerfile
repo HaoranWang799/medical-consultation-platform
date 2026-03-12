@@ -30,4 +30,4 @@ COPY --from=backend-build /app/backend/dist ./backend/dist
 ENV NODE_ENV=production
 EXPOSE 3001
 
-CMD ["sh", "-c", "cd backend && npx prisma db push --skip-generate && cd .. && node backend/dist/index.js"]
+CMD ["sh", "-c", "cd backend && npx prisma db push --skip-generate --accept-data-loss && cd .. && node backend/dist/index.js"]

@@ -5,9 +5,9 @@
   "scripts": {
     "dev": "tsx watch src/index.ts",
     "prisma:generate": "prisma generate",
-    "prisma:push": "prisma db push",
+    "prisma:push": "prisma db push --accept-data-loss",
     "build": "prisma generate && tsc",
-    "start": "prisma db push && node dist/index.js"
+    "start": "prisma db push --accept-data-loss && node dist/index.js"
   },
   "dependencies": {
     "@prisma/client": "^6.6.0",
