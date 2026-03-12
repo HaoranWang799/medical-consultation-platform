@@ -1,0 +1,10 @@
+[build]
+# 1. 安装前端依赖并构建静态文件
+# 2. 进入后端目录安装后端依赖
+buildCommand = "npm install && npm run build && cd backend && npm install"
+
+[deploy]
+# 启动后端（在生产模式下同时托管前端静态文件）
+startCommand = "cd backend && NODE_ENV=production npx tsx src/index.ts"
+healthcheckPath = "/api/health"
+healthcheckTimeout = 30
