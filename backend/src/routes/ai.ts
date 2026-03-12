@@ -65,7 +65,10 @@ router.post("/chat", async (req: AuthRequest, res: Response): Promise<void> => {
   }
 
   try {
-    const response = await fetch(`${AI_API_BASE}/chat/completions`, {
+    const apiUrl = `${AI_API_BASE}/chat/completions`;
+    console.log(`🤖 调用 AI API: ${apiUrl}，模型: ${AI_MODEL}`);
+    
+    const response = await fetch(apiUrl, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -81,7 +84,7 @@ router.post("/chat", async (req: AuthRequest, res: Response): Promise<void> => {
 
     if (!response.ok) {
       const err = await response.text();
-      console.error("AI API 错误:", response.status, err);
+      console.error(`❌ AI API 错误 (${response.status}):`, err);
       res.status(502).json({ message: "AI 服务暂时不可用，请稍后重试" });
       return;
     }
