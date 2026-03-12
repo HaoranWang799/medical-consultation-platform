@@ -17,6 +17,8 @@ export function AIChatPage() {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
   const [isTyping, setIsTyping] = useState(false);
+  const [isTransferring, setIsTransferring] = useState(false);
+  const [transferError, setTransferError] = useState("");
   const scrollRef = useRef<HTMLDivElement>(null);
 
   /** 调用后端 AI 接口并追加回复消息 */
@@ -75,6 +77,7 @@ export function AIChatPage() {
 
   const sendMessage = async () => {
     if (!input.trim()) return;
+    setTransferError("");
     const userMsg: ChatMessage = {
       id: `user-${Date.now()}`,
       sender: "patient",
@@ -88,8 +91,23 @@ export function AIChatPage() {
   };
 
   const handleConsultDoctor = async () => {
-    const id = await addConsultation(symptoms, messages);
-    navigate(`/consultation/${id}`);
+    if (isTransferring) return;
+
+    const symptomSummary =
+      symptoms.trim() ||
+      messages.find((message) => message.sender === "patient")?.content.trim() ||
+      "AI 问诊转人工咨询";
+
+    setTransferError("");
+    setIsTransferring(true);
+    try {
+      const id = await addConsultation(symptomSummary, messages);
+      navigate(`/consultation/${id}`);
+    } catch (error) {
+      setTransferError(error instanceof Error ? error.message : "转人工失败，请稍后重试");
+    } finally {
+      setIsTransferring(false);
+    }
   };
 
   return (
@@ -181,23 +199,31 @@ export function AIChatPage() {
             </div>
           </div>
         )}
-      </div>
 
-      {/* Consult Doctor Banner */}
-      {messages.length >= 3 && (
-        <div className="px-4 pb-2">
-          <button
-            onClick={handleConsultDoctor}
-            className="w-full flex items-center justify-center gap-2 py-3 px-4 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-xl hover:from-blue-600 hover:to-blue-700 transition-all"
-          >
-            <Stethoscope className="w-5 h-5" />
-            <span>咨询真人医生</span>
-          </button>
-        </div>
-      )}
+        {transferError && (
+          <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">
+            {transferError}
+          </div>
+        )}
+      </div>
 
       {/* Input */}
       <div className="border-t bg-white p-4 shrink-0">
+        <div className="mx-auto mb-3 flex max-w-3xl items-center gap-3">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={handleConsultDoctor}
+            disabled={isTransferring}
+            className="h-11 border-blue-200 bg-blue-50 text-blue-700 hover:bg-blue-100 hover:text-blue-800"
+          >
+            <Stethoscope className="mr-2 h-4 w-4" />
+            {isTransferring ? "正在转接医生..." : "转人工医生"}
+          </Button>
+          <p className="text-xs text-muted-foreground">
+            可随时转入真人医生会话，保留当前 AI 问诊记录。
+          </p>
+        </div>
         <form
           onSubmit={(e) => {
             e.preventDefault();
