@@ -10,9 +10,9 @@ RUN npm run build
 FROM node:20-alpine AS backend-build
 WORKDIR /app/backend
 COPY backend/package*.json ./
-RUN npm ci
+RUN npm ci --ignore-scripts
 COPY backend/ .
-RUN npx tsc
+RUN npm run build
 
 # ── 阶段 3：生产运行镜像 ────────────────────────────────────────────────────
 FROM node:20-alpine
@@ -20,7 +20,8 @@ WORKDIR /app
 
 # 只安装生产依赖
 COPY backend/package*.json ./backend/
-RUN cd backend && npm ci --omit=dev
+COPY backend/prisma ./backend/prisma
+RUN cd backend && npm ci --omit=dev --ignore-scripts && npx prisma generate --schema=./prisma/schema.prisma
 
 # 复制编译产物
 COPY --from=frontend-build /app/dist ./dist
