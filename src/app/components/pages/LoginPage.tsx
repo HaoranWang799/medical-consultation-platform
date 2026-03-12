@@ -192,7 +192,7 @@ function AuthCard() {
   return (
     <div
       id="auth-card"
-      className="flex items-center justify-center bg-gradient-to-br from-slate-50 to-white px-6 py-12 lg:px-12"
+      className="flex items-center justify-center bg-gradient-to-b from-teal-50/50 to-white px-6 py-12 lg:px-12"
     >
       <div className="w-full max-w-md animate-[fadeSlideIn_0.7s_ease-out_0.2s_both]">
         {/* Mobile-only brand line */}
