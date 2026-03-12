@@ -1,83 +1,71 @@
-import { createRequire } from "module";
-
-const require = createRequire(import.meta.url);
-const tencentcloud = require("tencentcloud-sdk-nodejs");
-
-type SendSmsResult = {
-  provider: "tencent";
-  serialNo?: string;
-};
+import twilio from "twilio";
+import { createPhoneVerificationCode, getPhoneCodeDebug, verifyPhoneCode } from "./phoneVerification.js";
 
 type SmsProviderStatus =
-  | { enabled: false; reason: string }
-  | { enabled: true };
+  | { enabled: false; provider: "debug"; reason: string }
+  | { enabled: true; provider: "twilio" };
 
 function getEnv(name: string): string {
   return (process.env[name] ?? "").trim();
 }
 
-function getTencentSmsConfig() {
+function getTwilioConfig() {
   return {
-    secretId: getEnv("TENCENTCLOUD_SECRET_ID"),
-    secretKey: getEnv("TENCENTCLOUD_SECRET_KEY"),
-    sdkAppId: getEnv("TENCENTCLOUD_SMS_APP_ID"),
-    signName: getEnv("TENCENTCLOUD_SMS_SIGN_NAME"),
-    templateId: getEnv("TENCENTCLOUD_SMS_TEMPLATE_ID"),
-    region: getEnv("TENCENTCLOUD_SMS_REGION") || "ap-guangzhou",
+    accountSid: getEnv("TWILIO_ACCOUNT_SID"),
+    authToken: getEnv("TWILIO_AUTH_TOKEN"),
+    verifyServiceSid: getEnv("TWILIO_VERIFY_SERVICE_SID"),
   };
 }
 
-export function getSmsProviderStatus(): SmsProviderStatus {
-  const config = getTencentSmsConfig();
-  if (!config.secretId || !config.secretKey || !config.sdkAppId || !config.signName || !config.templateId) {
-    return { enabled: false, reason: "腾讯云短信配置不完整，已回退为调试验证码模式" };
-  }
-
-  return { enabled: true };
-}
-
-function formatChinesePhone(phone: string): string {
+function formatE164Phone(phone: string): string {
   return phone.startsWith("+") ? phone : `+86${phone}`;
 }
 
-export async function sendVerificationCodeSms(phone: string, code: string): Promise<SendSmsResult> {
-  const config = getTencentSmsConfig();
+export function getSmsProviderStatus(): SmsProviderStatus {
+  const config = getTwilioConfig();
+  if (!config.accountSid || !config.authToken || !config.verifyServiceSid) {
+    return { enabled: false, provider: "debug", reason: "Twilio Verify 配置不完整，已回退为调试验证码模式" };
+  }
+
+  return { enabled: true, provider: "twilio" };
+}
+
+export async function sendPhoneVerificationCode(phone: string, role: string): Promise<{ debugCode?: string }> {
   const status = getSmsProviderStatus();
-  if (!status.enabled) {
-    throw new Error(status.reason);
+
+  if (status.enabled) {
+    const config = getTwilioConfig();
+    const client = twilio(config.accountSid, config.authToken);
+    await client.verify.v2.services(config.verifyServiceSid).verifications.create({
+      to: formatE164Phone(phone),
+      channel: "sms",
+    });
+    return {};
   }
 
-  const clientConfig = {
-    credential: {
-      secretId: config.secretId,
-      secretKey: config.secretKey,
-    },
-    region: config.region,
-    profile: {
-      httpProfile: {
-        endpoint: "sms.tencentcloudapi.com",
-      },
-    },
-  };
+  const code = createPhoneVerificationCode(phone, role);
+  console.log(`📱 调试验证码 [${role}] ${phone}: ${code}`);
 
-  const SmsClient = tencentcloud.sms.v20210111.Client;
-  const client = new SmsClient(clientConfig);
+  const debugCode =
+    process.env.NODE_ENV !== "production" || process.env.SMS_DEBUG_CODE === "true"
+      ? getPhoneCodeDebug(phone, role) ?? undefined
+      : undefined;
 
-  const response = await client.SendSms({
-    SmsSdkAppId: config.sdkAppId,
-    SignName: config.signName,
-    TemplateId: config.templateId,
-    PhoneNumberSet: [formatChinesePhone(phone)],
-    TemplateParamSet: [code, "5"],
-  });
+  return { debugCode };
+}
 
-  const sendStatus = response.SendStatusSet?.[0];
-  if (!sendStatus || sendStatus.Code !== "Ok") {
-    throw new Error(sendStatus?.Message || "腾讯云短信发送失败");
+export async function checkPhoneVerificationCode(phone: string, role: string, code: string): Promise<boolean> {
+  const status = getSmsProviderStatus();
+
+  if (status.enabled) {
+    const config = getTwilioConfig();
+    const client = twilio(config.accountSid, config.authToken);
+    const result = await client.verify.v2.services(config.verifyServiceSid).verificationChecks.create({
+      to: formatE164Phone(phone),
+      code,
+    });
+    return result.status === "approved";
   }
 
-  return {
-    provider: "tencent",
-    serialNo: sendStatus.SerialNo,
-  };
+  return verifyPhoneCode(phone, role, code);
 }

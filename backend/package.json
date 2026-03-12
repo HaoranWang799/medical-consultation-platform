@@ -17,7 +17,8 @@
     "express": "^4.18.2",
     "jsonwebtoken": "^9.0.2",
     "prisma": "^6.6.0",
-    "tencentcloud-sdk-nodejs": "^4.1.192"
+    "tencentcloud-sdk-nodejs": "^4.1.192",
+    "twilio": "^5.13.0"
   },
   "devDependencies": {
     "@types/bcryptjs": "^2.4.6",

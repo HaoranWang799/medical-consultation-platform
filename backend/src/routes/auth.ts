@@ -5,8 +5,7 @@ import { signToken, authenticate } from "../middleware/auth.js";
 import type { AuthRequest } from "../middleware/auth.js";
 import type { UserRole } from "../types.js";
 import { prisma } from "../lib/prisma.js";
-import { createPhoneVerificationCode, getPhoneCodeDebug, verifyPhoneCode } from "../lib/phoneVerification.js";
-import { getSmsProviderStatus, sendVerificationCodeSms } from "../lib/sms.js";
+import { checkPhoneVerificationCode, getSmsProviderStatus, sendPhoneVerificationCode } from "../lib/sms.js";
 
 const router = Router();
 
@@ -215,20 +214,16 @@ router.post("/send-phone-code", async (req: Request, res: Response): Promise<voi
     return;
   }
 
-  const code = createPhoneVerificationCode(normalizedPhone, role);
-  const debugCode =
-    process.env.NODE_ENV !== "production" || process.env.SMS_DEBUG_CODE === "true"
-      ? getPhoneCodeDebug(normalizedPhone, role)
-      : undefined;
-
   try {
-    const smsStatus = getSmsProviderStatus();
-    if (smsStatus.enabled) {
-      const result = await sendVerificationCodeSms(normalizedPhone, code);
-      console.log(`📱 腾讯云短信发送成功 [${role}] ${normalizedPhone}, serialNo=${result.serialNo ?? "-"}`);
-    } else {
-      console.log(`📱 调试验证码 [${role}] ${normalizedPhone}: ${code}`);
+    const providerStatus = getSmsProviderStatus();
+    const result = await sendPhoneVerificationCode(normalizedPhone, role);
+    if (providerStatus.enabled) {
+      console.log(`📱 Twilio Verify 发送成功 [${role}] ${normalizedPhone}`);
     }
+    res.json({
+      message: "验证码已发送",
+      ...(result.debugCode ? { debugCode: result.debugCode } : {}),
+    });
   } catch (error) {
     console.error("❌ 短信发送失败:", error);
     res.status(502).json({
@@ -236,11 +231,6 @@ router.post("/send-phone-code", async (req: Request, res: Response): Promise<voi
     });
     return;
   }
-
-  res.json({
-    message: "验证码已发送",
-    ...(debugCode ? { debugCode } : {}),
-  });
 });
 
 // POST /api/auth/register-by-phone
@@ -278,7 +268,7 @@ router.post("/register-by-phone", async (req: Request, res: Response): Promise<v
     return;
   }
 
-  if (!verifyPhoneCode(normalizedPhone, role, code.trim())) {
+  if (!(await checkPhoneVerificationCode(normalizedPhone, role, code.trim()))) {
     res.status(400).json({ message: "验证码无效或已过期" });
     return;
   }
