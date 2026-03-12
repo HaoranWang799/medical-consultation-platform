@@ -6,6 +6,7 @@ import type { AuthRequest } from "../middleware/auth.js";
 import type { UserRole } from "../types.js";
 import { prisma } from "../lib/prisma.js";
 import { createPhoneVerificationCode, getPhoneCodeDebug, verifyPhoneCode } from "../lib/phoneVerification.js";
+import { getSmsProviderStatus, sendVerificationCodeSms } from "../lib/sms.js";
 
 const router = Router();
 
@@ -215,12 +216,26 @@ router.post("/send-phone-code", async (req: Request, res: Response): Promise<voi
   }
 
   const code = createPhoneVerificationCode(normalizedPhone, role);
-  console.log(`📱 手机验证码 [${role}] ${normalizedPhone}: ${code}`);
-
   const debugCode =
     process.env.NODE_ENV !== "production" || process.env.SMS_DEBUG_CODE === "true"
       ? getPhoneCodeDebug(normalizedPhone, role)
       : undefined;
+
+  try {
+    const smsStatus = getSmsProviderStatus();
+    if (smsStatus.enabled) {
+      const result = await sendVerificationCodeSms(normalizedPhone, code);
+      console.log(`📱 腾讯云短信发送成功 [${role}] ${normalizedPhone}, serialNo=${result.serialNo ?? "-"}`);
+    } else {
+      console.log(`📱 调试验证码 [${role}] ${normalizedPhone}: ${code}`);
+    }
+  } catch (error) {
+    console.error("❌ 短信发送失败:", error);
+    res.status(502).json({
+      message: error instanceof Error ? error.message : "短信发送失败，请稍后重试",
+    });
+    return;
+  }
 
   res.json({
     message: "验证码已发送",
