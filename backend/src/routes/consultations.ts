@@ -48,7 +48,7 @@ function toApiConsultation(consultation: DbConsultation) {
     symptoms: consultation.symptoms,
     status: consultation.status,
     createdAt: formatDateTimeCN(consultation.createdAt),
-    messages: consultation.messages.map((m) => ({
+    messages: consultation.messages.map((m: DbConsultation["messages"][number]) => ({
       id: m.id,
       consultationId: consultation.id,
       sender: resolveSender(consultation, m.senderId),
@@ -71,7 +71,7 @@ router.get("/", async (req: AuthRequest, res: Response): Promise<void> => {
     },
   });
 
-  res.json(all.map((c) => toApiConsultation(c as DbConsultation)));
+  res.json(all.map((c: DbConsultation) => toApiConsultation(c)));
 });
 
 // GET /api/consultations/:id
