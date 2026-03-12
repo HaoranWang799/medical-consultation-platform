@@ -1,0 +1,49 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id                 String         @id
+  email              String
+  password           String
+  role               String
+  name               String
+  createdAt          DateTime       @default(now()) @map("created_at")
+  patientConsults    Consultation[] @relation("PatientConsultations")
+  doctorConsults     Consultation[] @relation("DoctorConsultations")
+  sentMessages       Message[]      @relation("SentMessages")
+
+  @@unique([email, role])
+  @@map("users")
+}
+
+model Consultation {
+  id           String    @id
+  patientId    String    @map("patient_id")
+  doctorId     String?   @map("doctor_id")
+  status       String
+  symptoms     String
+  createdAt    DateTime  @default(now()) @map("created_at")
+  patient      User      @relation("PatientConsultations", fields: [patientId], references: [id], onDelete: Cascade)
+  doctor       User?     @relation("DoctorConsultations", fields: [doctorId], references: [id], onDelete: SetNull)
+  messages     Message[]
+
+  @@map("consultations")
+}
+
+model Message {
+  id              String        @id
+  consultationId  String        @map("consultation_id")
+  senderId        String?       @map("sender_id")
+  content         String
+  createdAt       DateTime      @default(now()) @map("created_at")
+  consultation    Consultation  @relation(fields: [consultationId], references: [id], onDelete: Cascade)
+  sender          User?         @relation("SentMessages", fields: [senderId], references: [id], onDelete: SetNull)
+
+  @@map("messages")
+}

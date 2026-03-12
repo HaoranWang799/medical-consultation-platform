@@ -1,12 +1,16 @@
 import { Router } from "express";
 import type { Request, Response } from "express";
 import bcrypt from "bcryptjs";
-import { users } from "../store.js";
 import { signToken, authenticate } from "../middleware/auth.js";
 import type { AuthRequest } from "../middleware/auth.js";
-import type { User, UserRole } from "../types.js";
+import type { UserRole } from "../types.js";
+import { prisma } from "../lib/prisma.js";
 
 const router = Router();
+
+function asUserRole(role: string): UserRole {
+  return role === "doctor" ? "doctor" : "patient";
+}
 
 // POST /api/auth/login
 router.post("/login", async (req: Request, res: Response): Promise<void> => {
@@ -21,25 +25,25 @@ router.post("/login", async (req: Request, res: Response): Promise<void> => {
     return;
   }
 
-  const user = [...users.values()].find(
-    (u) => u.email === email && u.role === role
-  );
+  const user = await prisma.user.findUnique({
+    where: { email_role: { email, role } },
+  });
 
   if (!user) {
     res.status(401).json({ message: "邮箱或密码错误" });
     return;
   }
 
-  const valid = await bcrypt.compare(password, user.passwordHash);
+  const valid = await bcrypt.compare(password, user.password);
   if (!valid) {
     res.status(401).json({ message: "邮箱或密码错误" });
     return;
   }
 
-  const token = signToken({ userId: user.id, role: user.role });
+  const token = signToken({ userId: user.id, role: asUserRole(user.role) });
   res.json({
     token,
-    user: { id: user.id, name: user.name, email: user.email, role: user.role },
+    user: { id: user.id, name: user.name, email: user.email, role: asUserRole(user.role) },
   });
 });
 
@@ -62,41 +66,39 @@ router.post("/register", async (req: Request, res: Response): Promise<void> => {
     return;
   }
 
-  const existing = [...users.values()].find(
-    (u) => u.email === email && u.role === role
-  );
+  const existing = await prisma.user.findUnique({
+    where: { email_role: { email, role } },
+  });
   if (existing) {
     res.status(409).json({ message: "该邮箱已被注册" });
     return;
   }
 
-  const passwordHash = await bcrypt.hash(password, 10);
-  const user: User = {
-    id: `user-${Date.now()}`,
-    name,
-    email,
-    passwordHash,
-    role,
-    createdAt: new Date().toISOString(),
-  };
+  const user = await prisma.user.create({
+    data: {
+      id: `user-${Date.now()}`,
+      name,
+      email,
+      password: await bcrypt.hash(password, 10),
+      role,
+    },
+  });
 
-  users.set(user.id, user);
-
-  const token = signToken({ userId: user.id, role: user.role });
+  const token = signToken({ userId: user.id, role: asUserRole(user.role) });
   res.status(201).json({
     token,
-    user: { id: user.id, name: user.name, email: user.email, role: user.role },
+    user: { id: user.id, name: user.name, email: user.email, role: asUserRole(user.role) },
   });
 });
 
 // GET /api/auth/me
-router.get("/me", authenticate, (req: AuthRequest, res: Response): void => {
-  const user = users.get(req.user!.userId);
+router.get("/me", authenticate, async (req: AuthRequest, res: Response): Promise<void> => {
+  const user = await prisma.user.findUnique({ where: { id: req.user!.userId } });
   if (!user) {
     res.status(404).json({ message: "用户不存在" });
     return;
   }
-  res.json({ id: user.id, name: user.name, email: user.email, role: user.role });
+  res.json({ id: user.id, name: user.name, email: user.email, role: asUserRole(user.role) });
 });
 
 export default router;

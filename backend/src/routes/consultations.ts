@@ -1,53 +1,104 @@
 import { Router } from "express";
 import type { Response } from "express";
-import { consultations, messages, users } from "../store.js";
 import { authenticate } from "../middleware/auth.js";
 import type { AuthRequest } from "../middleware/auth.js";
-import type { Consultation, ChatMessage, ConsultationStatus } from "../types.js";
+import type { ConsultationStatus } from "../types.js";
+import { prisma } from "../lib/prisma.js";
+import { formatDateTimeCN, formatTimeCN } from "../lib/time.js";
 
 const router = Router();
 
-// All routes require authentication
 router.use(authenticate);
 
-/** 将咨询对象附上消息列表再返回 */
-function withMessages(c: Consultation) {
-  return { ...c, messages: messages.get(c.id) ?? [] };
+type DbConsultation = Awaited<
+  ReturnType<typeof prisma.consultation.findFirst>
+> & {
+  id: string;
+  patientId: string;
+  doctorId: string | null;
+  symptoms: string;
+  status: string;
+  createdAt: Date;
+  patient: { id: string; name: string };
+  messages: Array<{ id: string; senderId: string | null; content: string; createdAt: Date }>;
+};
+
+function resolveSender(
+  consultation: { patientId: string; doctorId: string | null },
+  senderId: string | null
+): "patient" | "doctor" | "ai" {
+  if (!senderId) {
+    return "ai";
+  }
+  if (senderId === consultation.patientId) {
+    return "patient";
+  }
+  if (consultation.doctorId && senderId === consultation.doctorId) {
+    return "doctor";
+  }
+  return "doctor";
+}
+
+function toApiConsultation(consultation: DbConsultation) {
+  return {
+    id: consultation.id,
+    patientId: consultation.patientId,
+    doctorId: consultation.doctorId,
+    patientName: consultation.patient.name,
+    symptoms: consultation.symptoms,
+    status: consultation.status,
+    createdAt: formatDateTimeCN(consultation.createdAt),
+    messages: consultation.messages.map((m) => ({
+      id: m.id,
+      consultationId: consultation.id,
+      sender: resolveSender(consultation, m.senderId),
+      content: m.content,
+      timestamp: formatTimeCN(m.createdAt),
+    })),
+  };
 }
 
 // GET /api/consultations
-// 医生看全部，患者看自己的
-router.get("/", (req: AuthRequest, res: Response): void => {
-  const all = [...consultations.values()]
-    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+router.get("/", async (req: AuthRequest, res: Response): Promise<void> => {
+  const where = req.user!.role === "doctor" ? {} : { patientId: req.user!.userId };
 
-  const result =
-    req.user!.role === "doctor"
-      ? all
-      : all.filter((c) => c.patientId === req.user!.userId);
+  const all = await prisma.consultation.findMany({
+    where,
+    orderBy: { createdAt: "desc" },
+    include: {
+      patient: { select: { id: true, name: true } },
+      messages: { orderBy: { createdAt: "asc" } },
+    },
+  });
 
-  res.json(result.map(withMessages));
+  res.json(all.map((c) => toApiConsultation(c as DbConsultation)));
 });
 
 // GET /api/consultations/:id
-router.get("/:id", (req: AuthRequest, res: Response): void => {
-  const c = consultations.get(req.params.id);
+router.get("/:id", async (req: AuthRequest, res: Response): Promise<void> => {
+  const c = await prisma.consultation.findUnique({
+    where: { id: req.params.id },
+    include: {
+      patient: { select: { id: true, name: true } },
+      messages: { orderBy: { createdAt: "asc" } },
+    },
+  });
+
   if (!c) {
     res.status(404).json({ message: "咨询记录未找到" });
     return;
   }
 
-  // 患者只能查看自己的咨询
   if (req.user!.role === "patient" && c.patientId !== req.user!.userId) {
     res.status(403).json({ message: "无权访问此咨询" });
     return;
   }
 
-  res.json(withMessages(c));
+  res.json(toApiConsultation(c as DbConsultation));
 });
 
-// POST /api/consultations — 患者创建新咨询
-router.post("/", (req: AuthRequest, res: Response): void => {
+// POST /api/consultations
+router.post("/", async (req: AuthRequest, res: Response): Promise<void> => {
   if (req.user!.role !== "patient") {
     res.status(403).json({ message: "只有患者可以创建咨询" });
     return;
@@ -64,48 +115,48 @@ router.post("/", (req: AuthRequest, res: Response): void => {
   }
 
   const userId = req.user!.userId;
-  const user = users.get(userId);
-  const id = `C${Date.now()}`;
-  const now = new Date().toLocaleString("zh-CN", {
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
+  const consultationId = `C${Date.now()}`;
+
+  await prisma.consultation.create({
+    data: {
+      id: consultationId,
+      patientId: userId,
+      symptoms,
+      status: "pending",
+    },
   });
 
-  const c: Consultation = {
-    id,
-    patientId: userId,
-    patientName: user?.name ?? "患者",
-    symptoms,
-    status: "pending",
-    createdAt: now,
-  };
+  if (initialMessages.length > 0) {
+    await prisma.message.createMany({
+      data: initialMessages.map((m, index) => ({
+        id: `m-${Date.now()}-${index}`,
+        consultationId,
+        senderId: m.sender === "patient" ? userId : null,
+        content: m.content,
+      })),
+    });
+  }
 
-  const msgs: ChatMessage[] = initialMessages.map((m, i) => ({
-    id: `m-${Date.now()}-${i}`,
-    consultationId: id,
-    sender: m.sender,
-    content: m.content,
-    timestamp: m.timestamp,
-  }));
+  const created = await prisma.consultation.findUnique({
+    where: { id: consultationId },
+    include: {
+      patient: { select: { id: true, name: true } },
+      messages: { orderBy: { createdAt: "asc" } },
+    },
+  });
 
-  consultations.set(id, c);
-  messages.set(id, msgs);
-
-  res.status(201).json(withMessages(c));
+  res.status(201).json(toApiConsultation(created as DbConsultation));
 });
 
-// POST /api/consultations/:id/messages — 发送消息
-router.post("/:id/messages", (req: AuthRequest, res: Response): void => {
-  const c = consultations.get(req.params.id);
+// POST /api/consultations/:id/messages
+router.post("/:id/messages", async (req: AuthRequest, res: Response): Promise<void> => {
+  const c = await prisma.consultation.findUnique({ where: { id: req.params.id } });
+
   if (!c) {
     res.status(404).json({ message: "咨询记录未找到" });
     return;
   }
 
-  // 患者只能给自己的咨询发消息
   if (req.user!.role === "patient" && c.patientId !== req.user!.userId) {
     res.status(403).json({ message: "无权操作此咨询" });
     return;
@@ -122,35 +173,46 @@ router.post("/:id/messages", (req: AuthRequest, res: Response): void => {
     return;
   }
 
-  // sender 由服务端根据 JWT 角色决定，不信任客户端传入值
-  const sender = req.user!.role; // "patient" | "doctor"
+  const senderId = req.user!.userId;
+  const message = await prisma.message.create({
+    data: {
+      id: `m-${Date.now()}`,
+      consultationId: c.id,
+      senderId,
+      content,
+    },
+  });
 
-  const msg: ChatMessage = {
-    id: `m-${Date.now()}`,
-    consultationId: c.id,
-    sender,
-    content,
-    timestamp: new Date().toLocaleTimeString("zh-CN", {
-      hour: "2-digit",
-      minute: "2-digit",
-    }),
-  };
-
-  const existing = messages.get(c.id) ?? [];
-  existing.push(msg);
-  messages.set(c.id, existing);
-
-  // 医生首次回复时将状态更新为 doctor_replied
-  if (sender === "doctor" && c.status === "pending") {
-    consultations.set(c.id, { ...c, status: "doctor_replied" });
+  if (req.user!.role === "doctor" && c.status === "pending") {
+    await prisma.consultation.update({
+      where: { id: c.id },
+      data: {
+        status: "doctor_replied",
+        doctorId: c.doctorId ?? senderId,
+      },
+    });
   }
 
-  res.status(201).json(msg);
+  if (req.user!.role === "doctor" && !c.doctorId) {
+    await prisma.consultation.update({
+      where: { id: c.id },
+      data: { doctorId: senderId },
+    });
+  }
+
+  res.status(201).json({
+    id: message.id,
+    consultationId: c.id,
+    sender: req.user!.role,
+    content: message.content,
+    timestamp: formatTimeCN(message.createdAt),
+  });
 });
 
-// PATCH /api/consultations/:id/status — 更新状态
-router.patch("/:id/status", (req: AuthRequest, res: Response): void => {
-  const c = consultations.get(req.params.id);
+// PATCH /api/consultations/:id/status
+router.patch("/:id/status", async (req: AuthRequest, res: Response): Promise<void> => {
+  const c = await prisma.consultation.findUnique({ where: { id: req.params.id } });
+
   if (!c) {
     res.status(404).json({ message: "咨询记录未找到" });
     return;
@@ -168,9 +230,16 @@ router.patch("/:id/status", (req: AuthRequest, res: Response): void => {
     return;
   }
 
-  const updated = { ...c, status };
-  consultations.set(c.id, updated);
-  res.json(withMessages(updated));
+  const updated = await prisma.consultation.update({
+    where: { id: c.id },
+    data: { status },
+    include: {
+      patient: { select: { id: true, name: true } },
+      messages: { orderBy: { createdAt: "asc" } },
+    },
+  });
+
+  res.json(toApiConsultation(updated as DbConsultation));
 });
 
 export default router;

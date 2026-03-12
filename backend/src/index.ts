@@ -6,6 +6,8 @@ import { fileURLToPath } from "url";
 import authRouter from "./routes/auth.js";
 import consultationsRouter from "./routes/consultations.js";
 import aiRouter from "./routes/ai.js";
+import { ensureDefaultUsers } from "./lib/seed.js";
+import { prisma } from "./lib/prisma.js";
 
 const app = express();
 const PORT = process.env.PORT ? Number(process.env.PORT) : 3001;
@@ -45,13 +47,32 @@ if (IS_PRODUCTION) {
 }
 
 // ── 启动 ────────────────────────────────────────────────────────────────────
-app.listen(PORT, () => {
-  console.log(`✅ 服务已启动: http://localhost:${PORT}`);
-  console.log(`   NODE_ENV: ${process.env.NODE_ENV}`);
-  console.log(`   AI_API_BASE: ${process.env.AI_API_BASE ?? '(未设置，使用默认 OpenAI)'}`);
-  console.log(`   AI_MODEL: ${process.env.AI_MODEL ?? '(未设置, 使用默认 gpt-4o-mini)'}`);
-  if (!IS_PRODUCTION) {
-    console.log(`   默认账号 - 患者: patient@example.com / patient123`);
-    console.log(`   默认账号 - 医生: doctor@example.com  / doctor123`);
-  }
+async function bootstrap(): Promise<void> {
+  await ensureDefaultUsers();
+
+  app.listen(PORT, () => {
+    console.log(`✅ 服务已启动: http://localhost:${PORT}`);
+    console.log(`   NODE_ENV: ${process.env.NODE_ENV}`);
+    console.log(`   AI_API_BASE: ${process.env.AI_API_BASE ?? "(未设置，使用默认 OpenAI)"}`);
+    console.log(`   AI_MODEL: ${process.env.AI_MODEL ?? "(未设置, 使用默认 gpt-4o-mini)"}`);
+    if (!IS_PRODUCTION) {
+      console.log("   默认账号 - 患者: patient@example.com / patient123");
+      console.log("   默认账号 - 医生: doctor@example.com  / doctor123");
+    }
+  });
+}
+
+bootstrap().catch((error) => {
+  console.error("❌ 启动失败:", error);
+  process.exit(1);
+});
+
+process.on("SIGINT", async () => {
+  await prisma.$disconnect();
+  process.exit(0);
+});
+
+process.on("SIGTERM", async () => {
+  await prisma.$disconnect();
+  process.exit(0);
 });

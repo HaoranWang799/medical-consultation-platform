@@ -4,7 +4,7 @@ export interface User {
   id: string;
   name: string;
   email: string;
-  passwordHash: string;
+  password: string;
   role: UserRole;
   createdAt: string;
 }
@@ -22,6 +22,7 @@ export interface ChatMessage {
 export interface Consultation {
   id: string;
   patientId: string;
+  doctorId?: string | null;
   patientName: string;
   symptoms: string;
   status: ConsultationStatus;
