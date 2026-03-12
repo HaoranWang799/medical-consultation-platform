@@ -1,11 +1,4 @@
-[build]
-# 强制使用 Nixpacks，避免被自动识别为 Vite 静态站点
-builder = "NIXPACKS"
-# 构建前端 → 编译后端 TypeScript
-buildCommand = "npm install && npm run build && cd backend && npm install && npx tsc"
-
 [deploy]
-# 通过编译后的 JS 启动，无需 tsx
-startCommand = "NODE_ENV=production node backend/dist/index.js"
 healthcheckPath = "/api/health"
 healthcheckTimeout = 60
+
