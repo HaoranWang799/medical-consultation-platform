@@ -1,10 +1,11 @@
 [build]
-# 1. 安装前端依赖并构建静态文件
-# 2. 进入后端目录安装后端依赖
-buildCommand = "npm install && npm run build && cd backend && npm install"
+# 强制使用 Nixpacks，避免被自动识别为 Vite 静态站点
+builder = "NIXPACKS"
+# 构建前端 → 编译后端 TypeScript
+buildCommand = "npm install && npm run build && cd backend && npm install && npx tsc"
 
 [deploy]
-# 启动后端（在生产模式下同时托管前端静态文件）
-startCommand = "cd backend && NODE_ENV=production npx tsx src/index.ts"
+# 通过编译后的 JS 启动，无需 tsx
+startCommand = "NODE_ENV=production node backend/dist/index.js"
 healthcheckPath = "/api/health"
-healthcheckTimeout = 30
+healthcheckTimeout = 60
