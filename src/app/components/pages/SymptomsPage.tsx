@@ -3,7 +3,7 @@ import { useNavigate } from "react-router";
 import { Button } from "../ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "../ui/card";
 import { Badge } from "../ui/badge";
-import { Bot, ArrowRight, AlertCircle } from "lucide-react";
+import { Bot, ArrowRight, AlertCircle, Sparkles } from "lucide-react";
 
 const quickSymptoms = [
   "头痛", "发热", "咳嗽", "胃痛", "腹泻", "皮疹",
@@ -17,6 +17,11 @@ export function SymptomsPage() {
   const handleStart = () => {
     if (!symptoms.trim()) return;
     navigate("/ai-chat", { state: { symptoms } });
+  };
+
+  const handlePremiumStart = () => {
+    if (!symptoms.trim()) return;
+    navigate("/ai-chat", { state: { symptoms, premium: true } });
   };
 
   const addSymptom = (s: string) => {
@@ -82,6 +87,17 @@ export function SymptomsPage() {
             >
               开始AI咨询
               <ArrowRight className="ml-2 w-5 h-5" />
+            </Button>
+
+            <Button
+              size="lg"
+              variant="outline"
+              className="w-full border-violet-200 bg-gradient-to-r from-violet-50 to-purple-50 text-violet-700 hover:from-violet-100 hover:to-purple-100 hover:text-violet-800 hover:border-violet-300"
+              disabled={!symptoms.trim()}
+              onClick={handlePremiumStart}
+            >
+              <Sparkles className="mr-2 w-5 h-5" />
+              高级AI深度分析 (GPT-4o)
             </Button>
           </CardContent>
         </Card>

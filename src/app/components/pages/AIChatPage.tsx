@@ -5,13 +5,15 @@ import { Input } from "../ui/input";
 import { Badge } from "../ui/badge";
 import { useConsultations, ChatMessage } from "../../context/ConsultationContext";
 import { api } from "../../../lib/api";
-import { Bot, Send, UserRound, Stethoscope, Loader2 } from "lucide-react";
+import { Bot, Send, UserRound, Stethoscope, Loader2, Sparkles } from "lucide-react";
 
 export function AIChatPage() {
   const location = useLocation();
   const navigate = useNavigate();
   const { addConsultation } = useConsultations();
-  const symptoms = (location.state as { symptoms?: string })?.symptoms || "";
+  const symptoms = (location.state as { symptoms?: string; premium?: boolean })?.symptoms || "";
+  const isPremium = (location.state as { premium?: boolean })?.premium === true;
+  const aiEndpoint = isPremium ? "/ai/chat-premium" : "/ai/chat";
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
   const [isTyping, setIsTyping] = useState(false);
@@ -21,7 +23,7 @@ export function AIChatPage() {
   const fetchAiReply = async (currentMessages: ChatMessage[]) => {
     setIsTyping(true);
     try {
-      const { content } = await api.post<{ content: string }>("/ai/chat", {
+      const { content } = await api.post<{ content: string }>(aiEndpoint, {
         messages: currentMessages.map((m) => ({ role: m.sender, content: m.content })),
         symptoms,
       });
@@ -95,11 +97,16 @@ export function AIChatPage() {
       {/* Header */}
       <div className="bg-white border-b px-4 py-3 flex items-center justify-between shrink-0">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
-            <Bot className="w-5 h-5 text-primary" />
+          <div className={`w-10 h-10 rounded-full flex items-center justify-center ${isPremium ? "bg-violet-100" : "bg-primary/10"}`}>
+            {isPremium ? <Sparkles className="w-5 h-5 text-violet-600" /> : <Bot className="w-5 h-5 text-primary" />}
           </div>
           <div>
-            <h3 className="leading-tight">AI智能问诊</h3>
+            <h3 className="leading-tight flex items-center gap-2">
+              {isPremium ? "高级AI深度分析" : "AI智能问诊"}
+              {isPremium && (
+                <span className="text-[10px] font-medium bg-violet-100 text-violet-700 px-1.5 py-0.5 rounded-full">GPT-4o</span>
+              )}
+            </h3>
             <div className="flex items-center gap-1.5">
               <span className="w-2 h-2 rounded-full bg-green-500" />
               <span className="text-xs text-muted-foreground">在线</span>
@@ -129,11 +136,15 @@ export function AIChatPage() {
               className={`w-9 h-9 rounded-full flex items-center justify-center shrink-0 ${
                 msg.sender === "patient"
                   ? "bg-blue-100 text-blue-600"
-                  : "bg-primary/10 text-primary"
+                  : isPremium
+                    ? "bg-violet-100 text-violet-600"
+                    : "bg-primary/10 text-primary"
               }`}
             >
               {msg.sender === "patient" ? (
                 <UserRound className="w-5 h-5" />
+              ) : isPremium ? (
+                <Sparkles className="w-5 h-5" />
               ) : (
                 <Bot className="w-5 h-5" />
               )}
@@ -159,13 +170,13 @@ export function AIChatPage() {
 
         {isTyping && (
           <div className="flex gap-3">
-            <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-              <Bot className="w-5 h-5 text-primary" />
+            <div className={`w-9 h-9 rounded-full flex items-center justify-center shrink-0 ${isPremium ? "bg-violet-100" : "bg-primary/10"}`}>
+              {isPremium ? <Sparkles className="w-5 h-5 text-violet-600" /> : <Bot className="w-5 h-5 text-primary" />}
             </div>
             <div className="bg-white border shadow-sm rounded-2xl rounded-tl-sm px-4 py-3">
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
                 <Loader2 className="w-4 h-4 animate-spin" />
-                AI正在分析...
+                {isPremium ? "GPT-4o 深度分析中..." : "AI正在分析..."}
               </div>
             </div>
           </div>
