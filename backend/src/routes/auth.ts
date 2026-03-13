@@ -40,6 +40,40 @@ async function findUserByAccount(account: { email?: string }, role: UserRole) {
   return null;
 }
 
+function serializeUser(user: {
+  id: string;
+  name: string;
+  email: string;
+  role: string;
+  phone: string | null;
+  avatarUrl: string | null;
+  birthDate: string | null;
+  gender: string | null;
+  allergies: string | null;
+  medicalHistory: string | null;
+  hospital: string | null;
+  department: string | null;
+  title: string | null;
+  bio: string | null;
+}) {
+  return {
+    id: user.id,
+    name: user.name,
+    email: user.email,
+    role: asUserRole(user.role),
+    phone: user.phone ?? undefined,
+    avatarUrl: user.avatarUrl ?? undefined,
+    birthDate: user.birthDate ?? undefined,
+    gender: user.gender ?? undefined,
+    allergies: user.allergies ?? undefined,
+    medicalHistory: user.medicalHistory ?? undefined,
+    hospital: user.hospital ?? undefined,
+    department: user.department ?? undefined,
+    title: user.title ?? undefined,
+    bio: user.bio ?? undefined,
+  };
+}
+
 // GET /api/auth/check-account?account={email}[&role={role}]
 router.get("/check-account", async (req: Request, res: Response): Promise<void> => {
   const accountInput = typeof req.query.account === "string" ? req.query.account : "";
@@ -97,12 +131,7 @@ router.post("/login", async (req: Request, res: Response): Promise<void> => {
   const token = signToken({ userId: user.id, role: asUserRole(user.role) });
   res.json({
     token,
-    user: {
-      id: user.id,
-      name: user.name,
-      email: user.email,
-      role: asUserRole(user.role),
-    },
+    user: serializeUser(user),
   });
 });
 
@@ -156,12 +185,7 @@ router.post("/register", async (req: Request, res: Response): Promise<void> => {
   const token = signToken({ userId: user.id, role: asUserRole(user.role) });
   res.status(201).json({
     token,
-    user: {
-      id: user.id,
-      name: user.name,
-      email: user.email,
-      role: asUserRole(user.role),
-    },
+    user: serializeUser(user),
   });
 });
 
@@ -172,12 +196,82 @@ router.get("/me", authenticate, async (req: AuthRequest, res: Response): Promise
     res.status(404).json({ message: "用户不存在" });
     return;
   }
-  res.json({
-    id: user.id,
-    name: user.name,
-    email: user.email,
-    role: asUserRole(user.role),
+  res.json(serializeUser(user));
+});
+
+// PATCH /api/auth/me
+router.patch("/me", authenticate, async (req: AuthRequest, res: Response): Promise<void> => {
+  const user = await prisma.user.findUnique({ where: { id: req.user!.userId } });
+  if (!user) {
+    res.status(404).json({ message: "用户不存在" });
+    return;
+  }
+
+  const {
+    name,
+    phone,
+    avatarUrl,
+    birthDate,
+    gender,
+    allergies,
+    medicalHistory,
+    hospital,
+    department,
+    title,
+    bio,
+  } = req.body as {
+    name?: string;
+    phone?: string;
+    avatarUrl?: string;
+    birthDate?: string;
+    gender?: string;
+    allergies?: string;
+    medicalHistory?: string;
+    hospital?: string;
+    department?: string;
+    title?: string;
+    bio?: string;
+  };
+
+  const trimmedName = name?.trim();
+  if (!trimmedName) {
+    res.status(400).json({ message: "姓名不能为空" });
+    return;
+  }
+
+  const normalizedPhone = phone?.trim() ? phone.trim() : null;
+  if (normalizedPhone) {
+    const duplicate = await prisma.user.findFirst({
+      where: {
+        id: { not: user.id },
+        role: user.role,
+        phone: normalizedPhone,
+      },
+    });
+    if (duplicate) {
+      res.status(409).json({ message: "该手机号已被使用" });
+      return;
+    }
+  }
+
+  const updated = await prisma.user.update({
+    where: { id: user.id },
+    data: {
+      name: trimmedName,
+      phone: normalizedPhone,
+      avatarUrl: avatarUrl?.trim() || null,
+      birthDate: birthDate?.trim() || null,
+      gender: gender?.trim() || null,
+      allergies: allergies?.trim() || null,
+      medicalHistory: medicalHistory?.trim() || null,
+      hospital: hospital?.trim() || null,
+      department: department?.trim() || null,
+      title: title?.trim() || null,
+      bio: bio?.trim() || null,
+    },
   });
+
+  res.json(serializeUser(updated));
 });
 
 export default router;

@@ -7,6 +7,16 @@ export interface User {
   id: string;
   name: string;
   email: string;
+  phone?: string;
+  avatarUrl?: string;
+  birthDate?: string;
+  gender?: string;
+  allergies?: string;
+  medicalHistory?: string;
+  hospital?: string;
+  department?: string;
+  title?: string;
+  bio?: string;
   role: UserRole;
 }
 
@@ -15,6 +25,8 @@ interface AuthContextType {
   isLoading: boolean;
   login: (account: string, password: string, role: UserRole) => Promise<void>;
   register: (name: string, account: string, password: string, role: UserRole) => Promise<void>;
+  refreshUser: () => Promise<void>;
+  updateProfile: (payload: Partial<User> & { name: string }) => Promise<User>;
   logout: () => void;
 }
 
@@ -37,6 +49,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setIsLoading(false);
     }
   }, []);
+
+  const refreshUser = async (): Promise<void> => {
+    const nextUser = await api.get<User>("/auth/me");
+    setUser(nextUser);
+  };
 
   const login = async (account: string, password: string, role: UserRole): Promise<void> => {
     const { token, user } = await api.post<{ token: string; user: User }>(
@@ -61,6 +78,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(user);
   };
 
+  const updateProfile = async (payload: Partial<User> & { name: string }): Promise<User> => {
+    const updated = await api.patch<User>("/auth/me", payload);
+    setUser(updated);
+    return updated;
+  };
+
   const logout = () => {
     clearToken();
     setUser(null);
@@ -68,7 +91,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   return (
     <AuthContext.Provider
-      value={{ user, isLoading, login, register, logout }}
+      value={{ user, isLoading, login, register, refreshUser, updateProfile, logout }}
     >
       {children}
     </AuthContext.Provider>

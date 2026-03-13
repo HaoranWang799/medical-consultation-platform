@@ -12,14 +12,7 @@ import {
   X
 } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "../ui/dropdown-menu";
+import { NavbarAvatarMenu } from "./NavbarAvatarMenu";
 
 export function AppNav() {
   const { user, logout } = useAuth();
@@ -53,7 +46,7 @@ export function AppNav() {
 
   const handleLogout = () => {
     logout();
-    navigate("/");
+    navigate("/login");
   };
 
   return (
@@ -92,35 +85,7 @@ export function AppNav() {
 
         {/* User Menu (Desktop) */}
         <div className="hidden md:flex items-center gap-4">
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" className="relative h-9 w-9 rounded-full">
-                <Avatar className="h-9 w-9 border">
-                  <AvatarImage src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${user.name}`} alt={user.name} />
-                  <AvatarFallback>{user.name?.[0]?.toUpperCase()}</AvatarFallback>
-                </Avatar>
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent className="w-56" align="end" forceMount>
-              <DropdownMenuLabel className="font-normal">
-                <div className="flex flex-col space-y-1">
-                  <p className="text-sm font-medium leading-none">{user.name}</p>
-                  <p className="text-xs leading-none text-muted-foreground">
-                    {user.role === 'doctor' ? '医生账户' : '患者账户'}
-                  </p>
-                </div>
-              </DropdownMenuLabel>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={() => navigate("/consultations")}>
-                <ClipboardList className="mr-2 h-4 w-4" />
-                <span>我的咨询</span>
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={handleLogout} className="text-destructive focus:text-destructive">
-                <LogOut className="mr-2 h-4 w-4" />
-                <span>退出登录</span>
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+          <NavbarAvatarMenu user={user} onLogout={handleLogout} />
         </div>
 
         {/* Mobile Menu Toggle */}
@@ -154,7 +119,7 @@ export function AppNav() {
               <div className="border-t pt-4 mt-2">
                 <div className="flex items-center gap-3 px-2 mb-3">
                    <Avatar className="h-8 w-8">
-                      <AvatarImage src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${user.name}`} />
+                      <AvatarImage src={user.avatarUrl || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.name}`} />
                       <AvatarFallback>{user.name?.[0]}</AvatarFallback>
                    </Avatar>
                    <div className="text-sm">
@@ -162,6 +127,36 @@ export function AppNav() {
                       <p className="text-xs text-muted-foreground">{user.role}</p>
                    </div>
                 </div>
+                <Button
+                  variant="ghost"
+                  className="w-full justify-start"
+                  onClick={() => {
+                    navigate("/profile");
+                    setMobileMenuOpen(false);
+                  }}
+                >
+                  我的资料
+                </Button>
+                <Button
+                  variant="ghost"
+                  className="w-full justify-start"
+                  onClick={() => {
+                    navigate("/settings");
+                    setMobileMenuOpen(false);
+                  }}
+                >
+                  账户设置
+                </Button>
+                <Button
+                  variant="ghost"
+                  className="w-full justify-start"
+                  onClick={() => {
+                    navigate("/consultations");
+                    setMobileMenuOpen(false);
+                  }}
+                >
+                  咨询记录
+                </Button>
                 <Button variant="outline" className="w-full justify-start text-destructive" onClick={handleLogout}>
                    <LogOut className="mr-2 h-4 w-4" />
                    退出登录

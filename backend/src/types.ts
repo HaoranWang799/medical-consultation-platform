@@ -5,6 +5,15 @@ export interface User {
   name: string;
   email: string;
   phone?: string;
+  avatarUrl?: string;
+  birthDate?: string;
+  gender?: string;
+  allergies?: string;
+  medicalHistory?: string;
+  hospital?: string;
+  department?: string;
+  title?: string;
+  bio?: string;
   password: string;
   role: UserRole;
   createdAt: string;
