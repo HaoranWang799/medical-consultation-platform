@@ -111,7 +111,7 @@ export function AIChatPage() {
   };
 
   return (
-    <div className="h-screen flex flex-col bg-background">
+    <div className="flex h-[calc(100dvh-4rem)] min-h-[calc(100dvh-4rem)] flex-col bg-background">
       {/* Header */}
       <div className="bg-white border-b px-4 py-3 flex items-center justify-between shrink-0">
         <div className="flex items-center gap-3">
@@ -137,7 +137,7 @@ export function AIChatPage() {
       </div>
 
       {/* Messages */}
-      <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 py-6 space-y-6">
+      <div ref={scrollRef} className="min-h-0 flex-1 overflow-y-auto px-4 py-6 space-y-6">
         {/* System message */}
         <div className="text-center">
           <Badge variant="secondary" className="text-xs px-3 py-1">
